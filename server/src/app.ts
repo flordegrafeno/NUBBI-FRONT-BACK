@@ -5,6 +5,7 @@ import { errorsMiddleware } from './middlewares/errorsMiddleware';
 import { router as authRouter } from './features/auth/auth.router';
 import { router as actividadesRouter } from './features/actividades/actividades.router';
 import { router as asistenciasRouter } from './features/asistencias/asistencias.router';
+import { router as interaccionesRouter } from './features/interacciones/interacciones.router';
 import { initDb } from './config/database';
 
 const app = express();
@@ -16,6 +17,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRouter);
 app.use('/api/actividades', actividadesRouter);
 app.use('/api/asistencias', asistenciasRouter);
+app.use('/api/interacciones', interaccionesRouter);
 
 app.use(errorsMiddleware);
 
