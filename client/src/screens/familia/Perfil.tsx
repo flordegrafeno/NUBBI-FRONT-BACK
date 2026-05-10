@@ -8,7 +8,7 @@ export const Perfil = () => {
   const navigate = useNavigate();
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <TopBar title="Mi Perfil" />
       <div style={{ flex: 1, overflowY: "auto", background: colors.offWhite }}>
 
