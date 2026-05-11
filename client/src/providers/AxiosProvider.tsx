@@ -1,91 +1,95 @@
-import axios from "axios";
-import { createContext } from "preact";
-import { useContext, useMemo } from "preact/hooks";
-import type { ComponentChildren } from "preact";
-import type { AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import type { AuthData } from "../types";
-import {
-  getStoredAuth,
-  setStoredAuth,
-  removeStoredAuth,
-} from "../utils/storage";
+import axios from "axios";// Importa la biblioteca Axios para realizar peticiones HTTP, que se utiliza para crear una instancia de Axios personalizada con interceptores para manejar la autenticación y el manejo de errores en las peticiones a la API
+import { createContext } from "preact";// Importa la función createContext de Preact para crear un contexto que se utilizará para proporcionar la instancia de Axios personalizada a los componentes de la aplicación, lo que permite a los componentes acceder a esta instancia y realizar peticiones HTTP con autenticación y manejo de errores integrado
+import { useContext, useMemo } from "preact/hooks";// Importa los hooks useContext y useMemo de Preact para acceder al contexto de Axios y para memorizar la instancia de Axios personalizada, lo que mejora el rendimiento al evitar recrear la instancia en cada renderizado y permite a los componentes acceder a la misma instancia de Axios con autenticación y manejo de errores integrado
+import type { ComponentChildren } from "preact";// Importa el tipo ComponentChildren de Preact para definir el tipo de los hijos que se pasan al componente proveedor del contexto de Axios, lo que permite a los componentes hijos recibir correctamente el tipo de los hijos y evitar errores de tipo al usar el proveedor del contexto de Axios
+import type { AxiosInstance, InternalAxiosRequestConfig } from "axios";// Importa los tipos AxiosInstance e InternalAxiosRequestConfig de Axios para definir el tipo del contexto de Axios y para tipar correctamente la función que adjunta el token de autenticación a las peticiones, lo que mejora la seguridad y la robustez del código al garantizar que se manejen correctamente los tipos de las instancias de Axios y las configuraciones de las peticiones
+import type { AuthData } from "../types";// Importa el tipo AuthData desde el archivo de tipos para definir el tipo de los datos de autenticación que se manejan en la función de refresco de token, lo que mejora la seguridad y la robustez del código al garantizar que se manejen correctamente los tipos de los datos de autenticación y se eviten errores de tipo al manejar la autenticación en las peticiones a la API
+import {// Importa las funciones para manejar el almacenamiento de los datos de autenticación en el almacenamiento local, lo que permite guardar, obtener y eliminar los datos de autenticación de manera persistente en el navegador, lo que mejora la experiencia del usuario al mantener la sesión iniciada incluso después de recargar la página o cerrar el navegador, y también permite manejar la expiración de la sesión y redirigir al usuario a la página de login cuando sea necesario
+  getStoredAuth,// Función para obtener los datos de autenticación almacenados en el almacenamiento local, que devuelve un objeto con la información de autenticación si está disponible, o null si no hay datos de autenticación almacenados, lo que permite a la aplicación verificar si el usuario ya tiene una sesión iniciada y mantenerla activa incluso después de recargar la página o cerrar el navegador
+  setStoredAuth,// Función para guardar los datos de autenticación en el almacenamiento local, que recibe un objeto con la información de autenticación y lo guarda en el almacenamiento local, lo que permite a la aplicación mantener la sesión iniciada incluso después de recargar la página o cerrar el navegador, y también permite manejar la expiración de la sesión y redirigir al usuario a la página de login cuando sea necesario
+  removeStoredAuth,// Función para eliminar los datos de autenticación del almacenamiento local, que limpia la información de autenticación almacenada, lo que permite a la aplicación cerrar la sesión del usuario y redirigirlo a la página de login, lo que mejora la seguridad al asegurarse de que los datos de autenticación no permanezcan en el almacenamiento local después de cerrar sesión
+} from "../utils/storage";// Asegúrate de que estas funciones estén correctamente implementadas para manejar el almacenamiento de los datos de autenticación en el almacenamiento local de manera segura y eficiente
 
 
-const AxiosContext = createContext<AxiosInstance | null>(null);
+const AxiosContext = createContext<AxiosInstance | null>(null);// Crea un contexto para la instancia de Axios personalizada, que se inicializa con un valor por defecto de null, lo que indica que no hay una instancia de Axios disponible hasta que el proveedor del contexto la cree y la proporcione a los componentes hijos
 
-let refreshPromise: Promise<AuthData> | null = null;
+let refreshPromise: Promise<AuthData> | null = null;// Variable para almacenar la promesa de refresco de token en curso, lo que permite evitar múltiples solicitudes de refresco simultáneas y manejar correctamente la expiración de la sesión y la renovación del token de autenticación
 
-const isTokenExpired = (expiresAt: number): boolean =>
-  Date.now() >= (expiresAt - 30) * 1000;
+const isTokenExpired = (expiresAt: number): boolean =>// Función para verificar si el token de autenticación ha expirado, que compara la fecha actual con la fecha de expiración del token, considerando un margen de 30 segundos para evitar problemas de sincronización y garantizar que el token se renueve antes de que expire realmente, lo que mejora la experiencia del usuario al evitar interrupciones en la sesión debido a la expiración del token
+  Date.now() >= (expiresAt - 30) * 1000;// El token se considera expirado si la fecha actual es mayor o igual a la fecha de expiración menos 30 segundos, lo que proporciona un margen de tiempo para renovar el token antes de que expire realmente y evitar problemas de sincronización entre el cliente y el servidor
 
-const getAccessToken = async (baseURL: string): Promise<string | null> => {
-  const auth = getStoredAuth();
-  if (!auth) return null;
+const getAccessToken = async (baseURL: string): Promise<string | null> => {// Función para obtener el token de acceso, que verifica si el token actual ha expirado y, si es así, intenta refrescarlo utilizando el token de refresco, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  const auth = getStoredAuth();// Obtiene los datos de autenticación almacenados en el almacenamiento local, lo que permite verificar si el usuario ya tiene una sesión iniciada y mantenerla activa incluso después de recargar la página o cerrar el navegador, y también permite manejar la expiración de la sesión y redirigir al usuario a la página de login cuando sea necesario
+  if (!auth) return null;// Si no hay datos de autenticación almacenados, devuelve null, lo que indica que no hay una sesión iniciada y que el usuario debe iniciar sesión para obtener un token de acceso válido
 
-  const { session } = auth;
+  const { session } = auth;// Extrae la información de la sesión del objeto de autenticación, que incluye el token de acceso, el token de refresco y la fecha de expiración del token, lo que permite verificar si el token de acceso ha expirado y, si es así, intentar refrescarlo utilizando el token de refresco para mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión
 
-  if (!session.expires_at || !isTokenExpired(session.expires_at)) {
-    return session.access_token;
-  }
+  if (!session.expires_at || !isTokenExpired(session.expires_at)) {// Si el token de acceso no tiene una fecha de expiración o si la fecha de expiración no ha pasado, devuelve el token de acceso actual, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+    return session.access_token;// Si el token de acceso no ha expirado, devuelve el token de acceso actual, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  }// Si el token de acceso ha expirado, intenta refrescarlo utilizando el token de refresco, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
 
-  try {
-    refreshPromise ??= axios
-      .post<AuthData>(`${baseURL}/api/auth/refresh`, {
-        refreshToken: session.refresh_token,
+  try {// Si el token de acceso ha expirado, intenta refrescarlo utilizando el token de refresco, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+    refreshPromise ??= axios//  Si no hay una promesa de refresco en curso, crea una nueva promesa para refrescar el token de acceso utilizando el token de refresco, lo que permite evitar múltiples solicitudes de refresco simultáneas y manejar correctamente la expiración de la sesión y la renovación del token de autenticación
+      .post<AuthData>(`${baseURL}/api/auth/refresh`, {// Realiza una petición POST a la API para refrescar el token de acceso, enviando el token de refresco en el cuerpo de la petición, y esperando un objeto AuthData como respuesta que contiene la nueva información de autenticación, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+        refreshToken: session.refresh_token,// El token de refresco se envía en el cuerpo de la petición para que el servidor pueda verificarlo y, si es válido, generar un nuevo token de acceso y una nueva fecha de expiración, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
       })
-      .then(({ data }) => {
-        setStoredAuth(data);
-        return data;
+      .then(({ data }) => {// Si la petición de refresco es exitosa, se actualizan los datos de autenticación almacenados con la nueva información de autenticación obtenida de la respuesta de la API, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+        setStoredAuth(data);// Actualiza los datos de autenticación almacenados con la nueva información de autenticación obtenida de la respuesta de la API, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+        return data;// Devuelve la nueva información de autenticación obtenida de la respuesta de la API para que pueda ser utilizada por la función que llamó a getAccessToken para obtener el nuevo token de acceso y continuar con la petición original, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
       });
 
-    const newAuth = await refreshPromise;
-    return newAuth.session.access_token;
-  } catch {
-    removeStoredAuth();
-    globalThis.location.href = "/login";
-    throw new Error("Session expired");
-  } finally {
-    refreshPromise = null;
-  }
+    const newAuth = await refreshPromise;// Espera a que la promesa de refresco se resuelva para obtener la nueva información de autenticación, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua  
+    return newAuth.session.access_token;// Devuelve el nuevo token de acceso obtenido de la nueva información de autenticación, lo que permite mantener la sesión activa sin requerir que el usuario vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  } catch {// Si ocurre un error durante el proceso de refresco del token (por ejemplo, si el token de refresco es inválido o ha expirado), se eliminan los datos de autenticación almacenados y se redirige al usuario a la página de login, lo que mejora la seguridad al asegurarse de que los datos de autenticación no permanezcan en el almacenamiento local después de que la sesión haya expirado o sea inválida, y también proporciona una mejor experiencia de usuario al llevarlo a la página de login para que pueda iniciar sesión nuevamente
+    removeStoredAuth();// Elimina los datos de autenticación almacenados para limpiar la sesión del usuario, lo que mejora la seguridad al asegurarse de que los datos de autenticación no permanezcan en el almacenamiento local después de que la sesión haya expirado o sea inválida, y también proporciona una mejor experiencia de usuario al llevarlo a la página de login para que pueda iniciar sesión nuevamente
+    globalThis.location.href = "/login";// Redirige al usuario a la página de login para que pueda iniciar sesión nuevamente, lo que mejora la experiencia del usuario al llevarlo a la página de login para que pueda iniciar sesión nuevamente después de que su sesión haya expirado o sea inválida, y también proporciona una mejor seguridad al asegurarse de que el usuario no permanezca en una sesión inválida
+    throw new Error("Session expired");// Lanza un nuevo error con el mensaje "Session expired" para que cualquier función que haya llamado a getAccessToken pueda manejar este caso de manera adecuada (por ejemplo, mostrando una notificación al usuario o redirigiéndolo a la página de login), lo que mejora la experiencia del usuario al proporcionar una retroalimentación clara sobre el estado de su sesión y lo que debe hacer para continuar usando la aplicación
+  } finally {// Finalmente, independientemente de si el proceso de refresco del token fue exitoso o no, se limpia la variable refreshPromise para permitir futuros intentos de refresco si es necesario, lo que garantiza que la aplicación pueda manejar correctamente la expiración de la sesión y la renovación del token de autenticación en el futuro sin quedar bloqueada por una promesa de refresco anterior
+    refreshPromise = null;// Limpia la variable refreshPromise para permitir futuros intentos de refresco si es necesario, lo que garantiza que la aplicación pueda manejar correctamente la expiración de la sesión y la renovación del token de autenticación en el futuro sin quedar bloqueada por una promesa de refresco anterior
+  }// El bloque try-catch-finally asegura que el proceso de refresco del token se maneje correctamente, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante el proceso de refresco, y también garantiza que la aplicación pueda manejar correctamente la expiración de la sesión y la renovación del token de autenticación en el futuro sin quedar bloqueada por una promesa de refresco anterior
 };
 
-const attachAuth = async (
-  baseURL: string,
-  config: InternalAxiosRequestConfig,
-): Promise<InternalAxiosRequestConfig> => {
-  const token = await getAccessToken(baseURL);
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+const attachAuth = async (// Función para adjuntar el token de autenticación a las peticiones, que se utiliza como interceptor de solicitudes en la instancia de Axios personalizada, lo que permite agregar automáticamente el token de acceso a las cabeceras de las peticiones a la API para mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  baseURL: string,// El baseURL se pasa como argumento para que la función pueda llamar a getAccessToken con el baseURL correcto para obtener el token de acceso, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  config: InternalAxiosRequestConfig,// La configuración de la petición que se va a realizar, que se modifica para agregar el token de autenticación en las cabeceras si está disponible, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+): Promise<InternalAxiosRequestConfig> => {// La función es asíncrona porque necesita llamar a getAccessToken, que es una función asíncrona que puede realizar una petición para refrescar el token de acceso si es necesario, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  const token = await getAccessToken(baseURL);// Obtiene el token de acceso utilizando la función getAccessToken, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+  if (token) config.headers.Authorization = `Bearer ${token}`;// Si se obtiene un token de acceso válido, se agrega a las cabeceras de la petición en el formato "Bearer
+  return config;// Devuelve la configuración de la petición modificada con el token de autenticación adjunto en las cabeceras si está disponible, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
 };
 
-const extractErrorMessage = (error: unknown): never => {
-  const data = (error as { response?: { data?: { error?: string; message?: string } } }).response?.data;
-  const message: string = data?.error ?? data?.message ?? "Ocurrió un error inesperado";
-  return Promise.reject(new Error(message)) as never;
+const extractErrorMessage = (error: unknown): never => {// Función para extraer el mensaje de error de las respuestas de la API, que se utiliza como interceptor de respuestas en la instancia de Axios personalizada, lo que permite manejar los errores de manera consistente y proporcionar mensajes de error claros y útiles a los componentes que realizan peticiones a la API, mejorando así la experiencia del usuario al proporcionar retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  const data = (error as { response?: { data?: { error?: string; message?: string } } }).response?.data;// Intenta extraer el mensaje de error de la respuesta de la API, considerando que el mensaje puede estar en un campo "error" o "message" dentro del objeto de datos de la respuesta, lo que permite manejar diferentes formatos de error que la API pueda devolver y proporcionar mensajes de error claros y útiles a los componentes que realizan peticiones a la API
+  const message: string = data?.error ?? data?.message ?? "Ocurrió un error inesperado";// Si no se encuentra un mensaje de error específico en la respuesta de la API, se utiliza un mensaje genérico "Ocurrió un error inesperado", lo que proporciona una retroalimentación clara al usuario incluso cuando la API no devuelve un mensaje de error específico, mejorando así la experiencia del usuario al proporcionar información útil sobre los errores que ocurren durante las operaciones con la API
+  return Promise.reject(new Error(message)) as never;// Rechaza la promesa con un nuevo error que contiene el mensaje de error extraído, lo que permite a los componentes que realizan peticiones a la API manejar los errores de manera consistente y proporcionar mensajes de error claros y útiles a los usuarios, mejorando así la experiencia del usuario al proporcionar retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
 };
 
-export const AxiosProvider = ({
-  children,
-}: {
-  children: ComponentChildren;
-}) => {
-  const instance = useMemo(() => {
-    const baseURL = import.meta.env.VITE_API_URL || "";
-    const inst = axios.create({ baseURL });
+export const AxiosProvider = ({// Componente proveedor del contexto de Axios, que crea una instancia de Axios personalizada con interceptores para manejar la autenticación y el manejo de errores, y proporciona esta instancia a los componentes hijos a través del contexto de Axios, lo que permite a los componentes realizar peticiones HTTP con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  children,// Los componentes hijos que se envuelven con el AxiosProvider, que tendrán acceso a la instancia de Axios personalizada a través del contexto de Axios, lo que les permite realizar peticiones HTTP con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+}: {// El tipo de las props del AxiosProvider, que incluye los hijos que se pasan al componente, lo que permite a los componentes hijos recibir correctamente el tipo de los hijos y evitar errores de tipo al usar el proveedor del contexto de Axios
+  children: ComponentChildren;// El tipo de los hijos que se pasan al componente, que se define como ComponentChildren de Preact para permitir cualquier tipo de contenido como hijos (por ejemplo, elementos JSX, texto, etc.) y evitar errores de tipo al usar el proveedor del contexto de Axios
+}) => {// El componente proveedor del contexto de Axios, que crea una instancia de Axios personalizada con interceptores para manejar la autenticación y el manejo de errores, y proporciona esta instancia a los componentes hijos a través del contexto de Axios, lo que permite a los componentes realizar peticiones HTTP con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  const instance = useMemo(() => {  // Memoriza la instancia de Axios personalizada para evitar recrearla en cada renderizado, lo que mejora el rendimiento al proporcionar la misma instancia a los componentes hijos a través del contexto de Axios, lo que les permite realizar peticiones HTTP con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+    const baseURL = import.meta.env.VITE_API_URL || "";// Obtiene la URL base de la API desde las variables de entorno, lo que permite configurar la URL de la API de manera flexible según el entorno (desarrollo, producción, etc.) sin necesidad de modificar el código, mejorando así la mantenibilidad y la portabilidad de la aplicación  
+    const inst = axios.create({ baseURL });// Crea una instancia de Axios personalizada con la URL base configurada, lo que permite realizar peticiones HTTP a la API utilizando esta instancia con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
 
-    inst.interceptors.request.use((config) => attachAuth(baseURL, config));
-    inst.interceptors.response.use((response) => response, extractErrorMessage);
+    inst.interceptors.request.use((config) => attachAuth(baseURL, config));// Agrega un interceptor de solicitudes a la instancia de Axios para adjuntar automáticamente el token de autenticación a las cabeceras de las peticiones a la API, lo que permite mantener la sesión del usuario activa sin requerir que vuelva a iniciar sesión cada vez que el token de acceso expire, mejorando así la experiencia del usuario al proporcionar una sesión más fluida y continua
+    inst.interceptors.response.use((response) => response, extractErrorMessage);// Agrega un interceptor de respuestas a la instancia de Axios para extraer el mensaje de error de las respuestas de la API en caso de que ocurra un error, lo que permite manejar los errores de manera consistente y proporcionar mensajes de error claros y útiles a los componentes que realizan peticiones a la API, mejorando así la experiencia del usuario al proporcionar retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
 
-    return inst;
-  }, []);
+    return inst;// Devuelve la instancia de Axios personalizada con los interceptores configurados, lo que permite a los componentes hijos acceder a esta instancia a través del contexto de Axios y realizar peticiones HTTP con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  }, []);// El array de dependencias vacío asegura que la instancia de Axios personalizada se cree solo una vez y se memorice para su uso en los componentes hijos, lo que mejora el rendimiento al evitar recrear la instancia en cada renderizado y proporciona una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
 
   return (
     <AxiosContext.Provider value={instance}>{children}</AxiosContext.Provider>
   );
 };
 
-export const useAxios = () => {
-  const ctx = useContext(AxiosContext);
-  if (!ctx) throw new Error("useAxios must be used within AxiosProvider");
-  return ctx;
-};
+export const useAxios = () => {// Hook personalizado para acceder al contexto de Axios, que devuelve la instancia de Axios personalizada y lanza un error si se intenta usar fuera del AxiosProvider, lo que garantiza que los componentes que consumen este hook tengan acceso a la instancia de Axios correctamente configurada con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  const ctx = useContext(AxiosContext);// Utiliza el hook useContext para acceder al valor del contexto de Axios, lo que permite a los componentes que usan este hook obtener la instancia de Axios personalizada con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  if (!ctx) throw new Error("useAxios must be used within AxiosProvider");// Si el contexto no está disponible (lo que significa que este hook se está usando fuera del AxiosProvider), se lanza un error para alertar al desarrollador de que debe envolver su componente con el AxiosProvider para que el contexto esté disponible, lo que ayuda a prevenir errores de uso y garantiza que los componentes tengan acceso a la instancia de Axios correctamente configurada con autenticación y manejo de errores integrado para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+  return ctx;// El hook devuelve la instancia de Axios personalizada con autenticación y manejo de errores integrado, lo que permite a los componentes que usan este hook realizar peticiones HTTP con esta instancia para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API  
+};//  El hook devuelve la instancia de Axios personalizada con autenticación y manejo de errores integrado, lo que permite a los componentes que usan este hook realizar peticiones HTTP con esta instancia para mejorar la experiencia del usuario al proporcionar una sesión más fluida y continua, y retroalimentación clara sobre los errores que ocurren durante las operaciones con la API
+
+
+
+
