@@ -1,13 +1,13 @@
-import { useState } from "preact/hooks";
-import { colors, fonts } from "../../tokens";
-import { TopBar } from "../../components/PhoneFrame";
-import { BottomNav, familiaNav } from "../../components/BottomNav";
-import { useActividades, type Actividad } from "../../providers/ActividadesProvider";
-import { useMiHistorialInteracciones, type InteraccionConActividad } from "../../providers/InteraccionesProvider";
+import { useState } from "preact/hooks"; // Cambiado a Preact
+import { colors, fonts } from "../../tokens";// Importación de tokens de diseño para usar en los estilos de los componentes
+import { TopBar } from "../../components/PhoneFrame";// Importación del componente TopBar para mostrar la barra superior de la pantalla
+import { BottomNav, familiaNav } from "../../components/BottomNav";// Importación del componente BottomNav y la configuración de navegación para la familia, para mostrar la barra de navegación inferior en la pantalla
+import { useActividades, type Actividad } from "../../providers/ActividadesProvider";// Importación del hook useActividades y la interfaz Actividad desde el proveedor de actividades, para obtener la lista de actividades desde la API y para tipar las actividades que se muestran en la pantalla
+import { useMiHistorialInteracciones, type InteraccionConActividad } from "../../providers/InteraccionesProvider";// Importación del hook useMiHistorialInteracciones y la interfaz InteraccionConActividad desde el proveedor de interacciones, para obtener el historial de interacciones del usuario con las actividades y para tipar las interacciones que se muestran en la pantalla
 
-const formatFecha = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+const formatFecha = (iso: string) => {// Función para formatear una fecha en formato ISO a un formato más legible, que recibe una cadena de texto con la fecha en formato ISO y devuelve una cadena de texto con la fecha formateada en el formato "día mes" (por ejemplo, "12 mar")
+  const d = new Date(iso);// Crea un objeto Date a partir de la cadena de texto con la fecha en formato ISO, lo que permite manipular y formatear la fecha de manera más fácil utilizando los métodos del objeto Date
+  return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });// Devuelve una cadena de texto con la fecha formateada en el formato "día mes" (por ejemplo, "12 mar"), utilizando el método toLocaleDateString del objeto Date para formatear la fecha según la configuración regional de Colombia (es-CO) y especificando que se muestre el día como un número y el mes como una abreviatura de tres letras
 };
 
 const formatHora = (iso: string) => {

@@ -1,33 +1,33 @@
-import { createContext } from 'preact';
-import { useContext, useState, useCallback } from 'preact/hooks';
-import type { ComponentChildren } from 'preact';
+import { createContext } from 'preact'; // Importa la función createContext de Preact para crear un contexto que se utilizará para proporcionar la funcionalidad de mostrar toasts (notificaciones) en la aplicación  
+import { useContext, useState, useCallback } from 'preact/hooks';// Importa los hooks useContext, useState y useCallback de Preact para manejar el estado de los toasts y para crear funciones que se puedan memorizar para mostrar toasts sin recrearlas en cada renderizado
+import type { ComponentChildren } from 'preact';// Importa el tipo ComponentChildren de Preact para definir el tipo de los hijos que se pasan al componente proveedor del contexto de toasts, lo que permite a este componente envolver a otros componentes y proporcionarles acceso a la funcionalidad de mostrar toasts a través del contexto
 
-type ToastType = 'success' | 'error';
+type ToastType = 'success' | 'error';// Define un tipo ToastType que puede ser 'success' o 'error', lo que se utilizará para determinar el estilo de los toasts (por ejemplo, verde para éxito y rojo para error) y para proporcionar una experiencia de usuario clara y consistente al mostrar notificaciones en la aplicación
 
-interface Toast {
-  id: number;
-  message: string;
-  type: ToastType;
-}
+interface Toast {// Define una interfaz Toast que representa la estructura de un toast (notificación) en la aplicación, que incluye un ID único para cada toast, el mensaje que se mostrará en el toast y el tipo de toast (éxito o error) para determinar su estilo visual
+  id: number;// ID único para cada toast, que se utiliza para identificar y eliminar toasts específicos después de un tiempo determinado, lo que permite mostrar múltiples toasts al mismo tiempo sin conflictos y proporciona una experiencia de usuario fluida al mostrar notificaciones en la aplicación
+  message: string;// El mensaje que se mostrará en el toast, que proporciona información al usuario sobre el resultado de una acción o un evento en la aplicación, y ayuda a mejorar la experiencia del usuario al proporcionar retroalimentación clara y oportuna sobre lo que está sucediendo en la aplicación
+  type: ToastType;// El tipo de toast (éxito o error) para determinar su estilo visual, lo que ayuda a mejorar la experiencia del usuario al proporcionar una indicación visual clara sobre el resultado de una acción o un evento en la aplicación, y permite a los usuarios identificar rápidamente si una operación fue exitosa o si ocurrió un error, lo que mejora la usabilidad y la satisfacción del usuario al interactuar con la aplicación
+}// Puedes ajustar los campos de esta interfaz según las necesidades de tu aplicación, por ejemplo, agregando un campo para la duración del toast o para una función de callback que se ejecute cuando el toast se cierre
 
-interface ToastContextType {
-  showToast: (message: string, type: ToastType) => void;
-}
+interface ToastContextType {// Define una interfaz ToastContextType que representa la estructura del contexto de toasts, que incluye una función showToast para mostrar un nuevo toast con un mensaje y un tipo específico, lo que permite a los componentes que consumen este contexto mostrar notificaciones en la aplicación de manera fácil y consistente al proporcionar esta función a través del contexto
+  showToast: (message: string, type: ToastType) => void;// Función para mostrar un nuevo toast con un mensaje y un tipo específico, que se implementará en el proveedor del contexto de toasts para agregar un nuevo toast al estado de toasts y eliminarlo después de un tiempo determinado, lo que permite a los componentes que consumen este contexto mostrar notificaciones en la aplicación de manera fácil y consistente al proporcionar esta función a través del contexto  
+}// Puedes ajustar los campos de esta interfaz según las necesidades de tu aplicación, por ejemplo, agregando funciones para cerrar toasts manualmente o para configurar la duración de los toasts
 
-const ToastContext = createContext<ToastContextType | null>(null);
+const ToastContext = createContext<ToastContextType | null>(null);// Crea el contexto de toasts con un valor por defecto de null, lo que indica que no hay un proveedor de contexto de toasts disponible, y se lanzará un error si se intenta usar el hook useToast fuera del ToastProvider, lo que ayuda a prevenir errores de uso y garantiza que los componentes tengan acceso al contexto de toasts correctamente configurado para mostrar notificaciones en la aplicación  
 
-let nextId = 0;
+let nextId = 0;// Variable para generar IDs únicos para cada toast, que se incrementa cada vez que se muestra un nuevo toast, lo que permite identificar y eliminar toasts específicos después de un tiempo determinado, y proporciona una experiencia de usuario fluida al mostrar notificaciones en la aplicación sin conflictos entre múltiples toasts
 
-export const ToastProvider = ({ children }: { children: ComponentChildren }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+export const ToastProvider = ({ children }: { children: ComponentChildren }) => {// Componente proveedor del contexto de toasts, que envuelve a los componentes hijos y proporciona el valor del contexto que incluye la función showToast para mostrar notificaciones en la aplicación, y maneja el estado de los toasts para agregar nuevos toasts y eliminarlos después de un tiempo determinado, lo que permite a los componentes hijos acceder a esta funcionalidad a través del contexto de toasts para mostrar notificaciones de manera fácil y consistente en la aplicación 
+  const [toasts, setToasts] = useState<Toast[]>([]);//
 
-  const showToast = useCallback((message: string, type: ToastType) => {
-    const id = nextId++;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
-  }, []);
+  const showToast = useCallback((message: string, type: ToastType) => {// Función para mostrar un nuevo toast con un mensaje y un tipo específico, que se implementa utilizando useCallback para memorizar la función y evitar recrearla en cada renderizado, lo que mejora el rendimiento de la aplicación al permitir que los componentes que usan esta función no tengan que preocuparse por cambios innecesarios en la función showToast, y proporciona una experiencia de usuario fluida al mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts
+    const id = nextId++;// Genera un ID único para el nuevo toast utilizando la variable nextId, que se incrementa cada vez que se muestra un nuevo toast, lo que permite identificar y eliminar toasts específicos después de un tiempo determinado, y proporciona una experiencia de usuario fluida al mostrar notificaciones en la aplicación sin conflictos entre múltiples toasts
+    setToasts((prev) => [...prev, { id, message, type }]);// Agrega el nuevo toast al estado de toasts utilizando la función setToasts, que actualiza el estado con una nueva lista de toasts que incluye el nuevo toast, lo que permite mostrar este nuevo toast en la interfaz de usuario para proporcionar retroalimentación al usuario sobre el resultado de una acción o un evento en la aplicación, y mejora la experiencia del usuario al proporcionar notificaciones claras y oportunas sobre lo que está sucediendo en la aplicación
+    setTimeout(() => {// Configura un temporizador para eliminar el toast después de 3.5 segundos, lo que permite mostrar el toast durante un tiempo suficiente para que el usuario lo vea y lo lea, pero sin permanecer en la pantalla por demasiado tiempo, lo que mejora la experiencia del usuario al proporcionar notificaciones claras y oportunas sin saturar la interfaz de usuario con demasiados toasts o con toasts que permanecen demasiado tiempo en la pantalla
+      setToasts((prev) => prev.filter((t) => t.id !== id));//   Elimina el toast específico del estado de toasts utilizando la función setToasts, que actualiza el estado con una nueva lista de toasts que excluye el toast con el ID específico, lo que permite eliminar este toast de la interfaz de usuario después de que haya sido mostrado durante un tiempo suficiente para que el usuario lo vea y lo lea, y mejora la experiencia del usuario al proporcionar notificaciones claras y oportunas sin saturar la interfaz de usuario con demasiados toasts o con toasts que permanecen demasiado tiempo en la pantalla
+    }, 3500);// El tiempo de 3.5 segundos para mostrar el toast es un valor comúnmente utilizado para proporcionar suficiente tiempo para que el usuario vea y lea la notificación, pero puedes ajustar este tiempo según las necesidades de tu aplicación y la cantidad de información que se muestra en el toast, lo que permite personalizar la experiencia del usuario al mostrar notificaciones en la aplicación de manera clara y oportuna sin saturar la interfaz de usuario con demasiados toasts o con toasts que permanecen demasiado tiempo en la pantalla
+  }, []);// La función showToast se memoriza con useCallback para evitar recrearla en cada renderizado, y no tiene dependencias porque no utiliza ningún valor del estado o props, lo que permite que los componentes que usan esta función no tengan que preocuparse por cambios innecesarios en la función showToast, y proporciona una experiencia de usuario fluida al mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -48,8 +48,8 @@ export const ToastProvider = ({ children }: { children: ComponentChildren }) => 
   );
 }
 
-export const useToast = () => {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
-  return ctx;
-}
+export const useToast = () => {// Hook personalizado para acceder al contexto de toasts, que devuelve la función showToast para mostrar notificaciones en la aplicación, y lanza un error si se intenta usar fuera del ToastProvider, lo que garantiza que los componentes que consumen este hook tengan acceso al contexto de toasts correctamente configurado para mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts
+  const ctx = useContext(ToastContext);// Utiliza el hook useContext para acceder al valor del contexto de toasts, lo que permite a los componentes que usan este hook obtener la función showToast para mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts
+  if (!ctx) throw new Error('useToast must be used within ToastProvider');// Si el contexto no está disponible (lo que significa que este hook se está usando fuera del ToastProvider), se lanza un error para alertar al desarrollador de que debe envolver su componente con el ToastProvider para que el contexto esté disponible, lo que ayuda a prevenir errores de uso y garantiza que los componentes tengan acceso al contexto de toasts correctamente configurado para mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts
+  return ctx;// El hook devuelve el valor del contexto de toasts, que incluye la función showToast para mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts, lo que permite a los componentes que usan este hook acceder a esta función para mostrar notificaciones en la aplicación según sea necesario, mejorando la experiencia del usuario al proporcionar retroalimentación clara y oportuna sobre lo que está sucediendo en la aplicación
+}// El hook devuelve el valor del contexto de toasts, que incluye la función showToast para mostrar notificaciones en la aplicación de manera fácil y consistente a través del contexto de toasts, lo que permite a los componentes que usan este hook acceder a esta función para mostrar notificaciones en la aplicación según sea necesario, mejorando la experiencia del usuario al proporcionar retroalimentación clara y oportuna sobre lo que está sucediendo en la aplicación
