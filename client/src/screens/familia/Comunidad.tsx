@@ -1,10 +1,10 @@
-import { useState } from "preact/hooks";
+import { useState } from "preact/hooks"; // Cambiado a Preact
 
-import { colors, fonts } from "../../tokens";
-import {  TopBar } from "../../components/PhoneFrame";
-import { BottomNav, familiaNav } from "../../components/BottomNav";
+import { colors, fonts } from "../../tokens";// Importación de tokens de diseño para colores y fuentes, lo que permite mantener la consistencia visual en la aplicación al usar estos tokens para definir los estilos de los componentes  
+import {  TopBar } from "../../components/PhoneFrame";// Importación del componente TopBar para mostrar la barra superior de la pantalla, lo que proporciona una estructura visual clara y consistente en la aplicación al mostrar el título de la pantalla y otros elementos de navegación o información relevante en la parte superior de la interfaz de usuario
+import { BottomNav, familiaNav } from "../../components/BottomNav";// Importación del componente BottomNav y la configuración de navegación para la familia, lo que proporciona una barra de navegación inferior con las opciones de navegación definidas en familiaNav, lo que permite a los usuarios navegar fácilmente entre las diferentes pantallas de la sección de familia de la aplicación
 
-const contactos = [
+const contactos = [// Lista de contactos para mostrar en la pestaña de contactos, que incluye el nombre del contacto, un mensaje de ejemplo, la hora del último mensaje, un avatar representado por un emoji y el número de mensajes no leídos, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver sus contactos cercanos y la actividad reciente con cada uno de ellos
   { name: "Gestor Santamaria", msg: "Hola, te esperamos en la experiencia esta...", time: "10:24", avatar: "👩‍💼", unread: 2 },
   { name: "Papá",              msg: "Hola hijo ¿cómo estás?",                      time: "09:15", avatar: "👨",   unread: 0 },
 ];
@@ -14,13 +14,13 @@ const chats = [
   { name: "Mamá",                  msg: "Ok amor, hasta luego",                   time: "08:45", avatar: "👩", unread: 0 },
 ];
 
-export const ComunidadScreen = () => {
+export const ComunidadScreen = () => {// Componente principal de la pantalla de comunidad, que muestra una barra superior con el título y una sección de contenido con un header que incluye un gradiente y tabs para cambiar entre la vista de chats y contactos, y una lista de conversaciones o contactos según la pestaña seleccionada, lo que permite a los usuarios interactuar con sus contactos y chats grupales dentro de la comunidad de Nubbi
 
-  const [tab, setTab] = useState<"chats" | "contactos">("chats");
+  const [tab, setTab] = useState<"chats" | "contactos">("chats");// Estado para controlar la pestaña seleccionada, que puede ser "chats" o "contactos", y se inicializa en "chats" para mostrar la lista de chats por defecto, lo que permite a los usuarios cambiar entre la vista de chats y contactos según su preferencia al hacer clic en las pestañas correspondientes
 
-  const items = tab === "contactos" ? contactos : chats;
+  const items = tab === "contactos" ? contactos : chats;// Variable para almacenar la lista de elementos a mostrar en la sección principal, que se determina según la pestaña seleccionada (si la pestaña es "contactos", se muestran los contactos, de lo contrario se muestran los chats), lo que permite mostrar la información relevante en la interfaz de usuario según la selección del usuario entre chats y contactos
 
-  return (
+  return (// El componente devuelve una estructura de divs que conforman la pantalla de comunidad, con estilos definidos para cada sección para lograr una apariencia visual clara y consistente, y con componentes como TopBar y BottomNav para proporcionar una experiencia de usuario fluida y fácil de navegar dentro de la sección de comunidad de la aplicación
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
       <TopBar  />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
