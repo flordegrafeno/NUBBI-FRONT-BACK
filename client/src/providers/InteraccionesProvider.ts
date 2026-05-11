@@ -1,125 +1,126 @@
-import { useState, useEffect, useCallback } from "preact/hooks";
-import { useAxios } from "./AxiosProvider";
+import { useState, useEffect, useCallback } from "preact/hooks";// Cambiado a Preact
+import { useAxios } from "./AxiosProvider";// Asegúrate de que este hook esté adaptado para Preact
 
-export interface Interaccion {
-  id: string;
-  actividad_id: string;
-  profile_id: string;
-  atencion: boolean;
-  interes: boolean;
-  deseo: boolean;
-  accion: boolean;
-  created_at: string;
-  updated_at: string;
+export interface Interaccion {// Interfaz que representa una interacción del usuario con una actividad, que incluye información sobre si el usuario mostró atención, interés, deseo o tomó alguna acción relacionada con la actividad, así como las fechas de creación y actualización de la interacción
+  id: string;// ID único de la interacción
+  actividad_id: string;// ID de la actividad con la que el usuario interactuó, que se relaciona con el ID de la actividad en la base de datos para identificar a qué actividad corresponde esta interacción
+  profile_id: string;// ID del perfil del usuario que realizó la interacción, que se relaciona con el ID del perfil en la base de datos para identificar a qué usuario corresponde esta interacción
+  atencion: boolean;// Indica si el usuario mostró atención a la actividad, lo que puede ser útil para medir el interés general en la actividad y para personalizar futuras recomendaciones de actividades para el usuario
+  interes: boolean;// Indica si el usuario mostró interés en la actividad, lo que puede ser útil para medir el interés general en la actividad y para personalizar futuras recomendaciones de actividades para el usuario
+  deseo: boolean;// Indica si el usuario expresó deseo de participar en la actividad, lo que puede ser útil para medir el interés general en la actividad y para personalizar futuras recomendaciones de actividades para el usuario
+  accion: boolean;// Indica si el usuario tomó alguna acción relacionada con la actividad (por ejemplo, registrarse para participar, compartir la actividad, etc.), lo que puede ser útil para medir el compromiso del usuario con la actividad y para personalizar futuras recomendaciones de actividades para el usuario
+  created_at: string;// Fecha de creación de la interacción en formato ISO, lo que permite ordenar las interacciones por fecha
+  updated_at: string;// Fecha de última actualización de la interacción en formato ISO, lo que permite saber cuándo fue la última vez que se modificó esta interacción (por ejemplo, si el usuario actualizó su interés o deseo por la actividad)
 }
 
-export interface InteraccionConActividad extends Interaccion {
-  titulo: string;
-  fecha_inicio: string;
-  fecha_fin: string | null;
+export interface InteraccionConActividad extends Interaccion {// Interfaz que extiende la interfaz Interaccion para incluir información adicional de la actividad relacionada con la interacción, lo que permite mostrar esta información en la interfaz de usuario sin necesidad de hacer una consulta adicional a la API para obtener los detalles de la actividad
+  titulo: string;// Título de la actividad relacionada con la interacción, lo que permite mostrar el nombre de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente a qué actividad corresponde esta interacción
+  fecha_inicio: string;// Fecha de inicio de la actividad relacionada con la interacción en formato ISO, lo que permite mostrar la fecha de inicio de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente cuándo comienza esta actividad
+  fecha_fin: string | null;// Fecha de fin de la actividad relacionada con la interacción en formato ISO, o null si la actividad no tiene una fecha de fin establecida, lo que permite mostrar la fecha de fin de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente cuándo termina esta actividad (si es que tiene una fecha de fin establecida)
 }
 
-export const useMiHistorialInteracciones = () => {
-  const axios = useAxios();
-  const [historial, setHistorial] = useState<Map<string, InteraccionConActividad>>(new Map());
-  const [loading, setLoading] = useState(true);
+export const useMiHistorialInteracciones = () => {// Hook para obtener el historial de interacciones del usuario con las actividades, que hace una petición a la API para obtener la lista de interacciones del usuario y las almacena en un estado local, proporcionando funciones para marcar interés o deseo en una actividad y actualizar el estado local en consecuencia para reflejar los cambios sin necesidad de recargar la página
+  const axios = useAxios();// Hook personalizado para hacer peticiones HTTP con Axios
+  const [historial, setHistorial] = useState<Map<string, InteraccionConActividad>>(new Map());// Estado para almacenar el historial de interacciones del usuario con las actividades, que se representa como un Map donde la clave es el ID de la actividad y el valor es un objeto InteraccionConActividad que incluye la información de la interacción y los detalles de la actividad relacionada, lo que permite acceder fácilmente a la información de la interacción y la actividad correspondiente para cada actividad en el historial
+  const [loading, setLoading] = useState(true);// Estado para indicar si la carga del historial de interacciones está en progreso
 
-  useEffect(() => {
-    axios.get<InteraccionConActividad[]>("/api/interacciones/mi-historial")
-      .then(({ data }) => {
-        const map = new Map<string, InteraccionConActividad>();
-        data.forEach((h) => map.set(h.actividad_id, h));
-        setHistorial(map);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  useEffect(() => {// useEffect para cargar el historial de interacciones del usuario cuando el componente se monta, que hace una petición a la API para obtener la lista de interacciones del usuario y las almacena en el estado local, y maneja cualquier error que ocurra durante la carga
+    axios.get<InteraccionConActividad[]>("/api/interacciones/mi-historial")// Realiza una petición GET a la API para obtener la lista de interacciones del usuario, esperando un array de objetos InteraccionConActividad como respuesta que incluye la información de cada interacción y los detalles de la actividad relacionada
+      .then(({ data }) => {// Si la petición es exitosa, se actualiza el estado del historial de interacciones con la información obtenida de la API, convirtiendo el array de interacciones en un Map donde la clave es el ID de la actividad y el valor es el objeto InteraccionConActividad correspondiente, lo que permite acceder fácilmente a la información de la interacción y la actividad correspondiente para cada actividad en el historial
+        const map = new Map<string, InteraccionConActividad>();// Se crea un nuevo Map para almacenar el historial de interacciones, donde la clave es el ID de la actividad y el valor es el objeto InteraccionConActividad correspondiente
+        data.forEach((h) => map.set(h.actividad_id, h));// Se itera sobre el array de interacciones obtenido de la API y se agrega cada interacción al Map utilizando el ID de la actividad como clave, lo que permite acceder fácilmente a la información de la interacción y la actividad correspondiente para cada actividad en el historial
+        setHistorial(map);// Se actualiza el estado del historial de interacciones con el Map creado a partir de la información obtenida de la API, lo que permite acceder fácilmente a la información de la interacción y la actividad correspondiente para cada actividad en el historial
+      })// Si ocurre un error durante la petición, se muestra el error en la consola y se deja el historial de interacciones vacío, lo que permite manejar los errores de carga de manera sencilla y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga del historial de interacciones
+      .catch(console.error)// Si ocurre un error durante la petición, se muestra el error en la consola y se deja el historial de interacciones vacío, lo que permite manejar los errores de carga de manera sencilla y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga del historial de interacciones
+      .finally(() => setLoading(false));// Finalmente, independientemente de si la petición fue exitosa o no, se indica que la carga del historial de interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtiene el historial de interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga del historial de interacciones
+  }, []);// El array de dependencias vacío [] asegura que este efecto solo se ejecute una vez cuando el componente se monta, lo que permite cargar el historial de interacciones del usuario solo una vez al inicio y mantenerlo actualizado localmente a medida que el usuario marca interés o deseo en las actividades sin necesidad de recargar la página
 
-  const upsertLocal = (actividadId: string, updated: Interaccion) => {
-    setHistorial((prev) => {
-      const next = new Map(prev);
-      const existing = prev.get(actividadId);
-      next.set(actividadId, {
-        ...updated,
-        titulo: existing?.titulo ?? "",
-        fecha_inicio: existing?.fecha_inicio ?? "",
-        fecha_fin: existing?.fecha_fin ?? null,
-      });
-      return next;
+  const upsertLocal = (actividadId: string, updated: Interaccion) => {// Función para actualizar el estado local del historial de interacciones después de marcar interés o deseo en una actividad, que recibe el ID de la actividad y la información actualizada de la interacción, y actualiza el estado local para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    setHistorial((prev) => {// Se actualiza el estado del historial de interacciones utilizando la función de actualización del estado, que recibe el estado anterior como argumento y devuelve el nuevo estado actualizado, lo que permite actualizar el estado de manera inmutable y garantiza que los cambios se reflejen correctamente en la interfaz de usuario
+      const next = new Map(prev);// Se crea un nuevo Map a partir del estado anterior para mantener la inmutabilidad del estado, lo que garantiza que los cambios se reflejen correctamente en la interfaz de usuario
+      const existing = prev.get(actividadId);// Se obtiene la interacción existente para la actividad correspondiente al ID proporcionado, lo que permite conservar la información de la interacción y los detalles de la actividad que no se actualizan (como el título y las fechas) al actualizar solo los campos que cambian (como el interés o deseo)
+      next.set(actividadId, {// Se actualiza el Map con la nueva información de la interacción para la actividad correspondiente al ID proporcionado, utilizando la información actualizada de la interacción obtenida de la API y conservando la información de la interacción y los detalles de la actividad que no se actualizan (como el título y las fechas) al actualizar solo los campos que cambian (como el interés o deseo), lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página
+        ...updated,// Se copia toda la información de la interacción actualizada obtenida de la API para asegurarse de que el estado local refleje correctamente la información más reciente de la interacción, lo que permite mostrar los cambios en la interfaz de usuario sin necesidad de recargar la página
+        titulo: existing?.titulo ?? "",// Se conserva el título de la actividad de la interacción existente si está disponible, o se establece como una cadena vacía si no está disponible, lo que permite mostrar el título de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente a qué actividad corresponde esta interacción
+        fecha_inicio: existing?.fecha_inicio ?? "",// Se conserva la fecha de inicio de la actividad de la interacción existente si está disponible, o se establece como una cadena vacía si no está disponible, lo que permite mostrar la fecha de inicio de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente cuándo comienza esta actividad
+        fecha_fin: existing?.fecha_fin ?? null,// Se conserva la fecha de fin de la actividad de la interacción existente si está disponible, o se establece como null si no está disponible, lo que permite mostrar la fecha de fin de la actividad en la interfaz de usuario junto con la información de la interacción para que el usuario pueda identificar fácilmente cuándo termina esta actividad (si es que tiene una fecha de fin establecida)
+      });// Se actualiza el Map con la nueva información de la interacción para la actividad correspondiente al ID proporcionado, utilizando la información actualizada de la interacción obtenida de la API y conservando la información de la interacción y los detalles de la actividad que no se actualizan (como el título y las fechas) al actualizar solo los campos que cambian (como el interés o deseo), lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página
+      return next;// Se devuelve el nuevo Map actualizado para actualizar el estado del historial de interacciones, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página
     });
-  };
+  };// La función upsertLocal actualiza el estado local del historial de interacciones después de marcar interés o deseo en una actividad, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página, proporcionando una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
 
-  const marcarInteres = async (actividadId: string) => {
-    const existing = historial.get(actividadId);
-    if (existing?.interes) return;
+  const marcarInteres = async (actividadId: string) => {// Función para marcar interés en una actividad, que recibe el ID de la actividad y hace una petición a la API para actualizar la interacción del usuario con esa actividad, y luego actualiza el estado local del historial de interacciones para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario 
+    const existing = historial.get(actividadId);// Se obtiene la interacción existente para la actividad correspondiente al ID proporcionado, lo que permite verificar si el usuario ya ha marcado interés en esta actividad para evitar hacer una petición innecesaria a la API si el interés ya está marcado, lo que mejora la eficiencia de la aplicación y proporciona una experiencia de usuario más fluida al evitar retrasos innecesarios al marcar interés en una actividad
+    if (existing?.interes) return;// Si la interacción existente ya tiene el interés marcado, se retorna sin hacer nada, lo que evita hacer una petición innecesaria a la API si el interés ya está marcado, lo que mejora la eficiencia de la aplicación y proporciona una experiencia de usuario más fluida al evitar retrasos innecesarios al marcar interés en una actividad
     if (!existing) {
-      const { data } = await axios.post<Interaccion>("/api/interacciones", { actividad_id: actividadId, interes: true });
-      upsertLocal(actividadId, data);
-    } else {
-      const { data } = await axios.patch<Interaccion>(`/api/interacciones/${existing.id}`, { interes: true });
-      upsertLocal(actividadId, data);
-    }
+      const { data } = await axios.post<Interaccion>("/api/interacciones", { actividad_id: actividadId, interes: true }); // Si no existe una interacción previa para esta actividad, se hace una petición POST a la API para crear una nueva interacción con el interés marcado, enviando el ID de la actividad y el interés como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la nueva interacción creada, lo que permite marcar interés en una actividad que el usuario no había interactuado previamente 
+      upsertLocal(actividadId, data);// Después de recibir la respuesta de la API con la información de la nueva interacción creada, se llama a la función upsertLocal para actualizar el estado local del historial de interacciones con esta nueva información, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página y proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    } else {// Si ya existe una interacción previa para esta actividad pero el interés no está marcado, se hace una petición PATCH a la API para actualizar la interacción existente con el interés marcado, enviando el ID de la interacción y el interés como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la interacción actualizada, lo que permite marcar interés en una actividad que el usuario ya había interactuado previamente sin necesidad de crear una nueva interacción
+      const { data } = await axios.patch<Interaccion>(`/api/interacciones/${existing.id}`, { interes: true });// Se hace una petición PATCH a la API para actualizar la interacción existente con el interés marcado, enviando el ID de la interacción y el interés como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la interacción actualizada, lo que permite marcar interés en una actividad que el usuario ya había interactuado previamente sin necesidad de crear una nueva interacción
+      upsertLocal(actividadId, data);// Después de recibir la respuesta de la API con la información de la interacción actualizada, se llama a la función upsertLocal para actualizar el estado local del historial de interacciones con esta nueva información, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página y proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    }// La función marcarInteres marca interés en una actividad, haciendo una petición a la API para actualizar la interacción del usuario con esa actividad, y luego actualiza el estado local del historial de interacciones para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+  };// La función marcarInteres marca interés en una actividad, haciendo una petición a la API para actualizar la interacción del usuario con esa actividad, y luego actualiza el estado local del historial de interacciones para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+
+  const marcarDeseo = async (actividadId: string) => {// Función para marcar deseo en una actividad, que recibe el ID de la actividad y hace una petición a la API para actualizar la interacción del usuario con esa actividad, y luego actualiza el estado local del historial de interacciones para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    const existing = historial.get(actividadId);// Se obtiene la interacción existente para la actividad correspondiente al ID proporcionado, lo que permite verificar si el usuario ya ha marcado deseo en esta actividad para evitar hacer una petición innecesaria a la API si el deseo ya está marcado, lo que mejora la eficiencia de la aplicación y proporciona una experiencia de usuario más fluida al evitar retrasos innecesarios al marcar deseo en una actividad
+    if (existing?.deseo) return;// Si la interacción existente ya tiene el deseo marcado, se retorna sin hacer nada, lo que evita hacer una petición innecesaria a la API si el deseo ya está marcado, lo que mejora la eficiencia de la aplicación y proporciona una experiencia de usuario más fluida al evitar retrasos innecesarios al marcar deseo en una actividad
+    if (!existing) {// Si no existe una interacción previa para esta actividad, se hace una petición POST a la API para crear una nueva interacción con el deseo marcado, enviando el ID de la actividad y el deseo como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la nueva interacción creada, lo que permite marcar deseo en una actividad que el usuario no había interactuado previamente
+      const { data } = await axios.post<Interaccion>("/api/interacciones", { actividad_id: actividadId, deseo: true });// Se hace una petición POST a la API para crear una nueva interacción con el deseo marcado, enviando el ID de la actividad y el deseo como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la nueva interacción creada, lo que permite marcar deseo en una actividad que el usuario no había interactuado previamente
+      upsertLocal(actividadId, data);// Después de recibir la respuesta de la API con la información de la nueva interacción creada, se llama a la función upsertLocal para actualizar el estado local del historial de interacciones con esta nueva información, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página y proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    } else {// Si ya existe una interacción previa para esta actividad pero el deseo no está marcado, se hace una petición PATCH a la API para actualizar la interacción existente con el deseo marcado, enviando el ID de la interacción y el deseo como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la interacción actualizada, lo que permite marcar deseo en una actividad que el usuario ya había interactuado previamente sin necesidad de crear una nueva interacción
+      const { data } = await axios.patch<Interaccion>(`/api/interacciones/${existing.id}`, { deseo: true });// Se hace una petición PATCH a la API para actualizar la interacción existente con el deseo marcado, enviando el ID de la interacción y el deseo como datos en el cuerpo de la petición, y esperando un objeto Interaccion como respuesta que incluye la información de la interacción actualizada, lo que permite marcar deseo en una actividad que el usuario ya había interactuado previamente sin necesidad de crear una nueva interacción
+      upsertLocal(actividadId, data);// Después de recibir la respuesta de la API con la información de la interacción actualizada, se llama a la función upsertLocal para actualizar el estado local del historial de interacciones con esta nueva información, lo que permite reflejar los cambios en la interfaz de usuario sin necesidad de recargar la página y proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
+    }// La función marcarDeseo marca deseo en una actividad, haciendo una petición a la API para actualizar la interacción del usuario con esa actividad, y luego actualiza el estado local del historial de interacciones para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
   };
 
-  const marcarDeseo = async (actividadId: string) => {
-    const existing = historial.get(actividadId);
-    if (existing?.deseo) return;
-    if (!existing) {
-      const { data } = await axios.post<Interaccion>("/api/interacciones", { actividad_id: actividadId, deseo: true });
-      upsertLocal(actividadId, data);
-    } else {
-      const { data } = await axios.patch<Interaccion>(`/api/interacciones/${existing.id}`, { deseo: true });
-      upsertLocal(actividadId, data);
-    }
-  };
+  return { historial, loading, marcarInteres, marcarDeseo };// El hook devuelve un objeto con el historial de interacciones del usuario, el estado de carga, y las funciones para marcar interés o deseo en una actividad, lo que permite a los componentes que usan este hook acceder a esta información y funciones para mostrar la interfaz correspondiente según el historial de interacciones del usuario y para permitir al usuario marcar interés o deseo en las actividades directamente desde la interfaz sin necesidad de recargar la página
+};// El hook useMiHistorialInteracciones proporciona una forma de obtener el historial de interacciones del usuario con las actividades, y de marcar interés o deseo en las actividades, actualizando el estado local para reflejar los cambios sin necesidad de recargar la página, lo que proporciona una experiencia de usuario fluida al mostrar los cambios inmediatamente en la interfaz de usuario
 
-  return { historial, loading, marcarInteres, marcarDeseo };
+export const useInteraccionesByActividad = (actividadId: string) => {// Hook para obtener las interacciones de los usuarios con una actividad específica, que hace una petición a la API para obtener la lista de interacciones relacionadas con esa actividad y las almacena en un estado local, proporcionando el estado de carga para que el componente que use este hook pueda mostrar un indicador de carga mientras se obtienen las interacciones
+  const axios = useAxios();// Hook personalizado para hacer peticiones HTTP con Axios
+  const [interacciones, setInteracciones] = useState<Interaccion[]>([]);// Estado para almacenar la lista de interacciones de los usuarios con la actividad específica, que se representa como un array de objetos Interaccion, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad
+  const [loading, setLoading] = useState(true);// Estado para indicar si la carga de las interacciones está en progreso, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+
+  const fetch = useCallback(async () => {// Función para cargar las interacciones de los usuarios con la actividad específica, que hace una petición a la API para obtener la lista de interacciones relacionadas con esa actividad y las almacena en el estado local, y maneja cualquier error que ocurra durante la carga
+    setLoading(true);// Se indica que la carga de las interacciones ha comenzado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+    try {// Se hace una petición GET a la API para obtener la lista de interacciones relacionadas con la actividad específica, esperando un array de objetos Interaccion como respuesta que incluye la información de cada interacción, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad
+      const { data } = await axios.get<Interaccion[]>(`/api/interacciones/actividad/${actividadId}`);// Si la petición es exitosa, se actualiza el estado de las interacciones con la información obtenida de la API, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad
+      setInteracciones(data);// Si la petición es exitosa, se actualiza el estado de las interacciones con la información obtenida de la API, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad
+    } catch {// Si ocurre un error durante la petición, se muestra el error en la consola y se deja la lista de interacciones vacía, lo que permite manejar los errores de carga de manera sencilla y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+      setInteracciones([]);// Si ocurre un error durante la petición, se muestra el error en la consola y se deja la lista de interacciones vacía, lo que permite manejar los errores de carga de manera sencilla y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+    } finally {// Finalmente, independientemente de si la petición fue exitosa o no, se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+      setLoading(false);//// Finalmente, independientemente de si la petición fue exitosa o no, se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+    }// La función fetch carga las interacciones de los usuarios con la actividad específica, haciendo una petición a la API para obtener la lista de interacciones relacionadas con esa actividad y las almacena en el estado local, y maneja cualquier error que ocurra durante la carga, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad, y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+  }, [actividadId]);// El hook useCallback se utiliza para memorizar la función fetch, lo que evita que se vuelva a crear en cada renderizado del componente, y solo se volverá a crear si el ID de la actividad cambia, lo que mejora la eficiencia de la aplicación al evitar renderizados innecesarios y proporciona una experiencia de usuario más fluida al cargar las interacciones de manera eficiente
+
+  useEffect(() => { fetch(); }, [fetch]);// useEffect para cargar las interacciones de los usuarios con la actividad específica cuando el componente se monta o cuando el ID de la actividad cambia, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad, y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+
+  return { interacciones, loading };// El hook devuelve un objeto con la lista de interacciones de los usuarios con la actividad específica y el estado de carga, lo que permite a los componentes que usan este hook acceder a esta información para mostrarla en la interfaz de usuario y para mostrar un indicador de carga mientras se obtienen las interacciones, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
 };
 
-export const useInteraccionesByActividad = (actividadId: string) => {
-  const axios = useAxios();
-  const [interacciones, setInteracciones] = useState<Interaccion[]>([]);
-  const [loading, setLoading] = useState(true);
+export const useInteraccionesAgregadas = (actividadIds: string[]) => {// Hook para obtener las interacciones de los usuarios con múltiples actividades, que hace una petición a la API para obtener la lista de interacciones relacionadas con cada una de las actividades proporcionadas y las almacena en un estado local, proporcionando el estado de carga para que el componente que use este hook pueda mostrar un indicador de carga mientras se obtienen las interacciones
+  const axios = useAxios();// Hook personalizado para hacer peticiones HTTP con Axios
+  const [interacciones, setInteracciones] = useState<Interaccion[]>([]);// Estado para almacenar la lista de interacciones de los usuarios con las actividades específicas, que se representa como un array de objetos Interaccion, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades
+  const [loading, setLoading] = useState(false);// Estado para indicar si la carga de las interacciones está en progreso, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await axios.get<Interaccion[]>(`/api/interacciones/actividad/${actividadId}`);
-      setInteracciones(data);
-    } catch {
-      setInteracciones([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [actividadId]);
+  const key = actividadIds.join(",");   // Se crea una clave única a partir de los IDs de las actividades para usarla como dependencia en el useEffect, lo que permite recargar las interacciones solo cuando cambien los IDs de las actividades, y no en cada renderizado del componente, lo que mejora la eficiencia de la aplicación al evitar cargas innecesarias de las interacciones y proporciona una experiencia de usuario más fluida al cargar las interacciones de manera eficiente
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { interacciones, loading };
-};
-
-export const useInteraccionesAgregadas = (actividadIds: string[]) => {
-  const axios = useAxios();
-  const [interacciones, setInteracciones] = useState<Interaccion[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const key = actividadIds.join(",");
-
-  useEffect(() => {
-    if (actividadIds.length === 0) return;
-    setLoading(true);
-    const all: Interaccion[] = [];
-    Promise.all(
-      actividadIds.map((id) =>
-        axios.get<Interaccion[]>(`/api/interacciones/actividad/${id}`)
-          .then(({ data }) => all.push(...data))
-          .catch(() => {})
-      )
-    ).finally(() => {
-      setInteracciones(all);
-      setLoading(false);
+  useEffect(() => {// useEffect para cargar las interacciones de los usuarios con las actividades específicas cuando el componente se monta o cuando cambian los IDs de las actividades, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+    if (actividadIds.length === 0) return;// Si no se proporcionan IDs de actividades, se retorna sin hacer nada, lo que evita hacer una petición innecesaria a la API si no hay actividades para cargar las interacciones, lo que mejora la eficiencia de la aplicación y proporciona una experiencia de usuario más fluida al evitar retrasos innecesarios al cargar las interacciones
+    setLoading(true);// Se indica que la carga de las interacciones ha comenzado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+    const all: Interaccion[] = [];// Se crea un array vacío para almacenar todas las interacciones obtenidas de la API, lo que permite acumular las interacciones de todas las actividades proporcionadas y mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades
+    Promise.all(//  Se utiliza Promise.all para hacer múltiples peticiones a la API de manera concurrente para obtener las interacciones relacionadas con cada una de las actividades proporcionadas, lo que permite cargar las interacciones de manera eficiente y proporciona una experiencia de usuario más fluida al mostrar los resultados más rápidamente/
+      
+      actividadIds.map((id) =>// Se itera sobre los IDs de las actividades proporcionadas y se hace una petición a la API para obtener las interacciones relacionadas con cada una de las actividades, esperando un array de objetos Interaccion como respuesta que incluye la información de cada interacción, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades
+        axios.get<Interaccion[]>(`/api/interacciones/actividad/${id}`)// Se hace una petición GET a la API para obtener la lista de interacciones relacionadas con la actividad correspondiente al ID proporcionado, esperando un array de objetos Interaccion como respuesta que incluye la información de cada interacción, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con esta actividad
+          .then(({ data }) => all.push(...data))// Si la petición es exitosa, se agrega la información obtenida de la API al array de todas las interacciones utilizando el operador spread para agregar cada interacción individualmente al array, lo que permite acumular las interacciones de todas las actividades proporcionadas y mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades
+          .catch(() => {})    // Si ocurre un error durante la petición de alguna de las actividades, se captura el error y se ignora, lo que permite manejar los errores de carga de manera sencilla y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones para alguna de las actividades, ya que se mostrarán las interacciones obtenidas para las otras actividades sin que el error afecte la carga general de las interacciones
+      )// Se utiliza Promise.all para hacer múltiples peticiones a la API de manera concurrente para obtener las interacciones relacionadas con cada una de las actividades proporcionadas, lo que permite cargar las interacciones de manera eficiente y proporciona una experiencia de usuario más fluida al mostrar los resultados más rápidamente
+    ).finally(() => {// Finalmente, independientemente de si las peticiones fueron exitosas o no, se actualiza el estado de las interacciones con la información obtenida de la API para todas las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+      setInteracciones(all);// Finalmente, independientemente de si las peticiones fueron exitosas o no, se actualiza el estado de las interacciones con la información obtenida de la API para todas las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+      setLoading(false);// Finalmente, independientemente de si las peticiones fueron exitosas o no, se actualiza el estado de las interacciones con la información obtenida de la API para todas las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
     });
-  }, [key]);
+  }, [key]);// El useEffect se ejecuta cuando el componente se monta o cuando cambian los IDs de las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
 
-  return { interacciones, loading };
-};
+  return { interacciones, loading };// El hook devuelve un objeto con la lista de interacciones de los usuarios con las actividades específicas y el estado de carga, lo que permite a los componentes que usan este hook acceder a esta información para mostrarla en la interfaz de usuario y para mostrar un indicador de carga mientras se obtienen las interacciones, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+};// El hook useInteraccionesAgregadas proporciona una forma de obtener las interacciones de los usuarios con múltiples actividades, haciendo peticiones a la API para obtener la lista de interacciones relacionadas con cada una de las actividades proporcionadas y almacenándolas en un estado local, y proporciona el estado de carga para que el componente que use este hook pueda mostrar un indicador de carga mientras se obtienen las interacciones, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
