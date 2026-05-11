@@ -1,39 +1,39 @@
-export type UserRole = "familia" | "gestor";
+export type UserRole = "familia" | "gestor";// Tipo de dato para representar los roles de usuario en la aplicación, lo que permite a los componentes de esta pantalla controlar el acceso a ciertas rutas y funcionalidades según el rol del usuario autenticado, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autorizados puedan acceder a ciertas partes de la aplicación y guiar a los usuarios hacia la autenticación si intentan acceder a contenido público mientras ya están autenticados
 
-export interface AuthUser {
+export interface AuthUser {// Interfaz para representar la información del usuario autenticado, lo que permite a los componentes de esta pantalla acceder a esta información para mostrarla en la pantalla de perfil y proporcionar una experiencia personalizada al usuario al mostrar su información de perfil en la aplicación
   id: string;
   email: string;
   full_name: string;
-  role: UserRole;
+  role: UserRole;// Campo para representar el rol del usuario, que se utiliza para controlar el acceso a ciertas rutas y funcionalidades según el rol del usuario autenticado, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autorizados puedan acceder a ciertas partes de la aplicación y guiar a los usuarios hacia la autenticación si intentan acceder a contenido público mientras ya están autenticados
 }
 
-export interface AuthSession {
-  access_token: string;
-  refresh_token: string;
+export interface AuthSession {// Interfaz para representar la información de la sesión de autenticación, lo que permite a los componentes de esta pantalla acceder a esta información para controlar el acceso a ciertas rutas y funcionalidades según el estado de autenticación del usuario, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autorizados puedan acceder a ciertas partes de la aplicación y guiar a los usuarios hacia la autenticación si intentan acceder a contenido público mientras ya están autenticados
+  access_token: string;// Campo para almacenar el token de acceso utilizado para autenticar las solicitudes a la API backend, lo que permite a los componentes de esta pantalla incluir este token en las solicitudes HTTP para acceder a recursos protegidos en la API y controlar el acceso a ciertas rutas y funcionalidades según el estado de autenticación del usuario, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autenticados puedan acceder a ciertas partes de la aplicación
+  refresh_token: string;// Campo para almacenar el token de actualización utilizado para obtener un nuevo token de acceso cuando el token actual expire, lo que permite a los componentes de esta pantalla incluir este token en las solicitudes HTTP para renovar la sesión de autenticación y mantener el acceso a recursos protegidos en la API sin requerir que el usuario vuelva a autenticarse, mejorando la experiencia del usuario al proporcionar una sesión de autenticación continua y sin interrupciones
   expires_at?: number; // Unix segundos
 }
 
-export interface AuthData {
-  user: AuthUser;
-  session: AuthSession;
+export interface AuthData {// Interfaz para representar la información de autenticación completa, que incluye tanto la información del usuario autenticado como la información de la sesión de autenticación, lo que permite a los componentes de esta pantalla acceder a toda esta información para mostrarla en la pantalla de perfil y controlar el acceso a ciertas rutas y funcionalidades según el estado de autenticación del usuario y su rol, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autorizados puedan acceder a ciertas partes de la aplicación y guiar a los usuarios hacia la autenticación si intentan acceder a contenido público mientras ya están autenticados
+  user: AuthUser;// Campo para almacenar la información del usuario autenticado, que se utiliza para mostrar esta información en la pantalla de perfil y proporcionar una experiencia personalizada al usuario al mostrar su información de perfil en la aplicación
+  session: AuthSession;// Campo para almacenar la información de la sesión de autenticación, que se utiliza para controlar el acceso a ciertas rutas y funcionalidades según el estado de autenticación del usuario, mejorando la seguridad y la experiencia del usuario al garantizar que solo los usuarios autorizados puedan acceder a ciertas partes de la aplicación y guiar a los usuarios hacia la autenticación si intentan acceder a contenido público mientras ya están autenticados
 }
 
-export interface Creator {
-  full_name: string;
-  email: string;
+export interface Creator {// Interfaz para representar la información del creador de una actividad, sala o mensaje, lo que permite a los componentes de esta pantalla mostrar esta información en la interfaz de usuario para proporcionar contexto sobre quién creó una actividad, sala o mensaje dentro de la aplicación
+  full_name: string;// Campo para almacenar el nombre completo del creador, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre quién creó una actividad, sala o mensaje dentro de la aplicación
+  email: string;// Campo para almacenar el correo electrónico del creador, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre quién creó una actividad, sala o mensaje dentro de la aplicación
 }
 
-export interface Room {
-  id: string;
-  name: string;
-  created_at: string;
-  created_by: Creator;
+export interface Room {// Interfaz para representar la información de una sala de chat, lo que permite a los componentes de esta pantalla mostrar esta información en la interfaz de usuario para proporcionar contexto sobre las salas de chat disponibles en la aplicación y quién las creó
+  id: string;// Campo para almacenar el identificador único de la sala, que se utiliza para identificar de manera única cada sala de chat en la aplicación y permitir a los componentes de esta pantalla acceder a esta información para mostrarla en la interfaz de usuario y proporcionar contexto sobre las salas de chat disponibles en la aplicación
+  name: string;// Campo para almacenar el nombre de la sala, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre las salas de chat disponibles en la aplicación
+  created_at: string;// Campo para almacenar la fecha y hora de creación de la sala, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre cuándo se crearon las salas de chat disponibles en la aplicación
+  created_by: Creator;//  Campo para almacenar la información del creador de la sala, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre quién creó las salas de chat disponibles en la aplicación
 }
 
-export interface Message {
-  id: string;
-  content: string;
-  room_id: string;
-  created_at: string;
-  created_by: Creator;
+export interface Message {// Interfaz para representar la información de un mensaje en una sala de chat, lo que permite a los componentes de esta pantalla mostrar esta información en la interfaz de usuario para proporcionar contexto sobre los mensajes enviados en las salas de chat dentro de la aplicación y quién los creó
+  id: string;// Campo para almacenar el identificador único del mensaje, que se utiliza para identificar de manera única cada mensaje en la aplicación y permitir a los componentes de esta pantalla acceder a esta información para mostrarla en la interfaz de usuario y proporcionar contexto sobre los mensajes enviados en las salas de chat dentro de la aplicación
+  content: string;// Campo para almacenar el contenido del mensaje, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre los mensajes enviados en las salas de chat dentro de la aplicación
+  room_id: string;// Campo para almacenar el identificador de la sala a la que pertenece el mensaje, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre los mensajes enviados en las salas de chat dentro de la aplicación
+  created_at: string;// Campo para almacenar la fecha y hora de creación del mensaje, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre cuándo se enviaron los mensajes en las salas de chat dentro de la aplicación
+  created_by: Creator;// Campo para almacenar la información del creador del mensaje, que se utiliza para mostrar esta información en la interfaz de usuario y proporcionar contexto sobre quién envió los mensajes en las salas de chat dentro de la aplicación
 }
