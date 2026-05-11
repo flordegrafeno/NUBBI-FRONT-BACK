@@ -1,23 +1,67 @@
-
+import { useState, useEffect } from "preact/hooks";
 import { colors, fonts } from "../../tokens";
-import {  TopBar } from "../../components/PhoneFrame";
+import { TopBar } from "../../components/PhoneFrame";
 import { BottomNav, gestorNav } from "../../components/BottomNav";
+import { getActividades } from "../../api/actividades";
+import { getInteraccionesByActividad, type Interaccion } from "../../api/interacciones";
 
-const aida = [
-  { label: "Atención", valor: 95, color: colors.blue   },
-  { label: "Interés",  valor: 72, color: colors.orange },
-  { label: "Deseo",    valor: 64, color: colors.pink   },
-  { label: "Acción",   valor: 83, color: colors.teal   },
-];
+interface AidaData {
+  label: string;
+  valor: number;
+  color: string;
+}
 
-
+const calcAida = (interacciones: Interaccion[]): AidaData[] => {
+  const total = interacciones.length;
+  const pct = (count: number) => total === 0 ? 0 : Math.round((count / total) * 100);
+  return [
+    { label: "Atención", valor: pct(interacciones.filter((i) => i.atencion).length), color: colors.blue },
+    { label: "Interés",  valor: pct(interacciones.filter((i) => i.interes).length),  color: colors.orange },
+    { label: "Deseo",    valor: pct(interacciones.filter((i) => i.deseo).length),    color: colors.pink },
+    { label: "Acción",   valor: pct(interacciones.filter((i) => i.accion).length),   color: colors.teal },
+  ];
+};
 
 export const DashboardScreen = () => {
+  const [aida, setAida] = useState<AidaData[]>([
+    { label: "Atención", valor: 0, color: colors.blue },
+    { label: "Interés",  valor: 0, color: colors.orange },
+    { label: "Deseo",    valor: 0, color: colors.pink },
+    { label: "Acción",   valor: 0, color: colors.teal },
+  ]);
+  const [totalActividades, setTotalActividades] = useState(0);
+  const [totalInteracciones, setTotalInteracciones] = useState(0);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const acts = await getActividades();
+        setTotalActividades(acts.length);
+        if (acts.length === 0) { setLoading(false); return; }
+
+        const allInteracciones: Interaccion[] = [];
+        await Promise.all(
+          acts.map((act) =>
+            getInteraccionesByActividad(act.id)
+              .then((ints) => allInteracciones.push(...ints))
+              .catch(() => {})
+          )
+        );
+        setTotalInteracciones(allInteracciones.length);
+        setAida(calcAida(allInteracciones));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
-      <TopBar  />
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height: "100vh" }}>
+      <TopBar />
       <div style={{
         flex: 1,
         overflowY: "auto",
@@ -28,7 +72,7 @@ export const DashboardScreen = () => {
         gap: 12,
       }}>
 
-        {/* Header del dashboard */}
+        {/* Header */}
         <div style={{
           background: `linear-gradient(135deg, ${colors.orange}, ${colors.orangeLight})`,
           borderRadius: 16,
@@ -41,29 +85,23 @@ export const DashboardScreen = () => {
           <div>
             <div style={{ fontWeight: 800, fontSize: 17, fontFamily: fonts.body }}>Dashboard</div>
             <div style={{ fontSize: 10, opacity: 0.85, marginTop: 2, fontFamily: fonts.body }}>
-              Análisis de compromiso
+              Análisis de compromiso AIDA
             </div>
           </div>
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            background: "rgba(255,255,255,0.2)",
-            borderRadius: 8,
-            padding: "4px 10px",
-          }}>
-            <span style={{ fontSize: 10, fontWeight: 600, fontFamily: fonts.body }}>June 2025</span>
-            <span style={{ fontSize: 12 }}>›</span>
-          </div>
+          {loading && (
+            <div style={{ fontSize: 10, background: "rgba(255,255,255,0.2)", borderRadius: 8, padding: "4px 10px", fontFamily: fonts.body }}>
+              Cargando...
+            </div>
+          )}
         </div>
 
-        {/* Métricas principales */}
+        {/* Métricas */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
-            { icon: "👨‍👩‍👧‍👦", valor: "124", label: "Familias totales",    color: colors.blue,   bg: colors.blueLight       },
-            { icon: "📊",        valor: "64%", label: "Tasa de asistencia", color: colors.green,  bg: colors.greenLight      },
-            { icon: "⚡",        valor: "28",  label: "Activos hoy",        color: colors.orange, bg: colors.orangeVeryLight },
-            { icon: "💬",        valor: "124", label: "Interacciones",      color: colors.teal,   bg: colors.tealLight       },
+            { icon: "🎯", valor: String(totalActividades),        label: "Actividades",     color: colors.blue,   bg: colors.blueLight       },
+            { icon: "💬", valor: String(totalInteracciones),      label: "Interacciones",   color: colors.teal,   bg: colors.tealLight       },
+            { icon: "📊", valor: `${aida[3]?.valor ?? 0}%`,      label: "Tasa de acción",  color: colors.orange, bg: colors.orangeVeryLight },
+            { icon: "⭐", valor: `${aida[1]?.valor ?? 0}%`,      label: "Tasa de interés", color: colors.pink,   bg: "#FFF0F3"              },
           ].map((metrica, i) => (
             <div key={i} style={{
               background: metrica.bg,
@@ -89,26 +127,8 @@ export const DashboardScreen = () => {
           padding: "14px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
         }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 14,
-          }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: colors.text, fontFamily: fonts.body }}>
-              Modelo AIDA
-            </div>
-            <button style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 11,
-              color: colors.orange,
-              fontWeight: 700,
-              fontFamily: fonts.body,
-            }}>
-              Ver detalles
-            </button>
+          <div style={{ fontWeight: 800, fontSize: 14, color: colors.text, fontFamily: fonts.body, marginBottom: 14 }}>
+            Modelo AIDA
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -128,11 +148,18 @@ export const DashboardScreen = () => {
                     height: "100%",
                     borderRadius: 4,
                     background: `linear-gradient(90deg, ${etapa.color}80, ${etapa.color})`,
+                    transition: "width 0.6s ease",
                   }} />
                 </div>
               </div>
             ))}
           </div>
+
+          {!loading && totalInteracciones === 0 && (
+            <div style={{ marginTop: 14, fontSize: 11, color: colors.textLight, fontFamily: fonts.body, textAlign: "center" }}>
+              Aún no hay interacciones registradas.
+            </div>
+          )}
         </div>
 
       </div>

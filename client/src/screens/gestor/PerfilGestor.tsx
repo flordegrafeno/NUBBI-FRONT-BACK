@@ -1,11 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { NubbiOwl } from "../../components/NubbiLogo";
-import {  TopBar } from "../../components/PhoneFrame";
+import { TopBar } from "../../components/PhoneFrame";
 import { BottomNav, gestorNav } from "../../components/BottomNav";
 import { colors, fonts } from "../../tokens";
+import { useAuth } from "../../context/AuthContext";
 
 export const PerfilGestor = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
@@ -42,7 +49,7 @@ export const PerfilGestor = () => {
                 Panel de control
               </div>
               <div style={{ fontSize: 18, fontWeight: 800, color: "white", fontFamily: fonts.body }}>
-                Bienvenido, Gestor Julian
+                {user?.full_name ?? "Gestor"}
               </div>
             </div>
           </div>
@@ -76,14 +83,15 @@ export const PerfilGestor = () => {
 
           {/* Botón cerrar sesión */}
           <button
-            onClick={() => navigate("/")}
+            onClick={handleLogout}
             style={{
               marginTop: 8,
               width: "100%",
               padding: "13px 0",
-              background: `${colors.blue}`,
+              background: "white",
+              border: `2px solid ${colors.gray300}`,
               borderRadius: 12,
-              color: "white",
+              color: colors.gray700,
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
@@ -94,7 +102,7 @@ export const PerfilGestor = () => {
               gap: 8,
             }}
           >
-            Cerrar sesión
+            🚪 Cerrar sesión
           </button>
         </div>
 
