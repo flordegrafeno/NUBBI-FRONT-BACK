@@ -1,17 +1,22 @@
-import { render } from "preact"; // Cambiado a Preact
-import "./index.css";// Importación del archivo de estilos globales para la aplicación, lo que permite aplicar estilos consistentes en toda la aplicación y mejorar la apariencia visual de los componentes y pantallas de la aplicación
-import { App } from "./app.tsx";// Importación del componente principal de la aplicación, lo que permite renderizar toda la aplicación dentro del elemento con id "app" en el archivo HTML, proporcionando la estructura y funcionalidad principal de la aplicación al incluir el componente de rutas y el proveedor de autenticación que envuelve toda la aplicación para controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol
-import { BrowserRouter } from "react-router-dom";// Importación del componente BrowserRouter para habilitar el enrutamiento en la aplicación, lo que permite a los componentes de esta pantalla redirigir a los usuarios a otras pantallas de la aplicación según las interacciones del usuario y controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol, mejorando la experiencia del usuario al proporcionar una navegación fluida y coherente dentro de la aplicación
-import { ToastProvider } from "./providers/ToastProvider";// Importación del proveedor de notificaciones ToastProvider para mostrar mensajes de retroalimentación al usuario, lo que permite a los componentes de esta pantalla mostrar notificaciones de éxito, error o información en respuesta a las acciones del usuario, mejorando la experiencia del usuario al proporcionar una comunicación clara y oportuna sobre el estado de las operaciones realizadas dentro de la aplicación
-import { AxiosProvider } from "./providers/AxiosProvider";// Importación del proveedor de Axios para configurar la instancia de Axios utilizada en la aplicación, lo que permite a los componentes de esta pantalla realizar solicitudes HTTP a la API backend de manera consistente y centralizada, mejorando la experiencia del desarrollador al proporcionar una configuración unificada para las solicitudes HTTP y facilitando el manejo de errores y la autenticación en las solicitudes realizadas desde cualquier parte de la aplicación
+import { render } from "preact";
+import "./index.css";
+import { App } from "./app.tsx";
+import { BrowserRouter } from "react-router-dom";
+import { ToastProvider } from "./providers/ToastProvider";
+import { AxiosProvider } from "./providers/AxiosProvider";
+import { SocketProvider } from "./providers/SocketProvider"; // NUEVO
 
-render(// Función de renderizado que monta la aplicación en el DOM, lo que permite mostrar la interfaz de usuario de la aplicación dentro del elemento con id "app" en el archivo HTML, proporcionando la estructura y funcionalidad principal de la aplicación al incluir el componente de rutas y el proveedor de autenticación que envuelve toda la aplicación para controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol
-  <ToastProvider>// Proveedor de notificaciones ToastProvider para mostrar mensajes de retroalimentación al usuario, lo que permite a los componentes de esta pantalla mostrar notificaciones de éxito, error o información en respuesta a las acciones del usuario, mejorando la experiencia del usuario al proporcionar una comunicación clara y oportuna sobre el estado de las operaciones realizadas dentro de la aplicación
-    <AxiosProvider>// Proveedor de Axios para configurar la instancia de Axios utilizada en la aplicación, lo que permite a los componentes de esta pantalla realizar solicitudes HTTP a la API backend de manera consistente y centralizada, mejorando la experiencia del desarrollador al proporcionar una configuración unificada para las solicitudes HTTP y facilitando el manejo de errores y la autenticación en las solicitudes realizadas desde cualquier parte de la aplicación
-      <BrowserRouter>// Componente BrowserRouter para habilitar el enrutamiento en la aplicación, lo que permite a los componentes de esta pantalla redirigir a los usuarios a otras pantallas de la aplicación según las interacciones del usuario y controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol, mejorando la experiencia del usuario al proporcionar una navegación fluida y coherente dentro de la aplicación
-        <App />// Componente principal de la aplicación, lo que permite renderizar toda la aplicación dentro del elemento con id "app" en el archivo HTML, proporcionando la estructura y funcionalidad principal de la aplicación al incluir el componente de rutas y el proveedor de autenticación que envuelve toda la aplicación para controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol
-      </BrowserRouter>// Componente BrowserRouter para habilitar el enrutamiento en la aplicación, lo que permite a los componentes de esta pantalla redirigir a los usuarios a otras pantallas de la aplicación según las interacciones del usuario y controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol, mejorando la experiencia del usuario al proporcionar una navegación fluida y coherente dentro de la aplicación
-    </AxiosProvider>// Proveedor de Axios para configurar la instancia de Axios utilizada en la aplicación, lo que permite a los componentes de esta pantalla realizar solicitudes HTTP a la API backend de manera consistente y centralizada, mejorando la experiencia del desarrollador al proporcionar una configuración unificada para las solicitudes HTTP y facilitando el manejo de errores y la autenticación en las solicitudes realizadas desde cualquier parte de la aplicación
-  </ToastProvider>,// Proveedor de notificaciones ToastProvider para mostrar mensajes de retroalimentación al usuario, lo que permite a los componentes de esta pantalla mostrar notificaciones de éxito, error o información en respuesta a las acciones del usuario, mejorando la experiencia del usuario al proporcionar una comunicación clara y oportuna sobre el estado de las operaciones realizadas dentro de la aplicación
-  document.getElementById("app")!// Elemento del DOM con id "app" donde se montará la aplicación, lo que permite mostrar la interfaz de usuario de la aplicación dentro de este elemento en el archivo HTML, proporcionando la estructura y funcionalidad principal de la aplicación al incluir el componente de rutas y el proveedor de autenticación que envuelve toda la aplicación para controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol
-);//  Función de renderizado que monta la aplicación en el DOM, lo que permite mostrar la interfaz de usuario de la aplicación dentro del elemento con id "app" en el archivo HTML, proporcionando la estructura y funcionalidad principal de la aplicación al incluir el componente de rutas y el proveedor de autenticación que envuelve toda la aplicación para controlar el acceso a ciertas rutas según el estado de autenticación del usuario y su rol
+render(
+  <ToastProvider>
+    <AxiosProvider>
+      {/* SocketProvider va dentro de AxiosProvider (necesita el token)
+          pero fuera de BrowserRouter no importa el orden aquí */}
+      <SocketProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </SocketProvider>
+    </AxiosProvider>
+  </ToastProvider>,
+  document.getElementById("app")!
+);

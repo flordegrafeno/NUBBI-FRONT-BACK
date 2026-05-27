@@ -1,75 +1,73 @@
-import { randomUUID } from "crypto";// Importación de la función randomUUID del módulo 'crypto' para generar identificadores únicos universales (UUIDs), lo que permite a la aplicación generar identificadores únicos para las actividades, mejorando la gestión de datos y evitando colisiones de identificadores en la base de datos
-import { pool } from "../../config/database";// Importación del pool de conexiones a la base de datos desde el módulo de configuración de la base de datos, lo que permite a este servicio interactuar con la base de datos PostgreSQL para realizar operaciones relacionadas con las actividades, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en un módulo de configuración separado
-import Boom from "@hapi/boom";// Importación de la biblioteca Boom para manejar errores HTTP de manera más sencilla y estructurada, lo que permite a este servicio lanzar errores con códigos de estado HTTP adecuados y mensajes claros, mejorando la gestión de errores en la aplicación al proporcionar información útil sobre los errores que puedan ocurrir durante la ejecución de las operaciones relacionadas con las actividades
-import { Actividad, CreateActividadDTO, UpdateActividadDTO } from "./actividades.types";// Importación de los tipos relacionados con las actividades, lo que permite a este servicio utilizar estos tipos para definir la estructura de los datos relacionados con las actividades, mejorando la seguridad de tipos en el código y facilitando el desarrollo al proporcionar una definición clara de los datos que se manejan en las operaciones relacionadas con las actividades
-console.log("CREATE SERVICE HIT");// Mensaje de depuración para indicar que el servicio de creación de actividades ha sido llamado, lo que puede ayudar a los desarrolladores a rastrear la ejecución del código y detectar cuándo se están realizando operaciones relacionadas con la creación de actividades en la aplicación
-export const createActividadService = async (// Función asíncrona para manejar la creación de una nueva actividad, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la creación de actividades
-  data: CreateActividadDTO,// Parámetro para recibir los datos necesarios para crear una nueva actividad, lo que permite a esta función recibir la información necesaria para realizar la operación de creación de una actividad específica en la aplicación, mejorando la organización del código al definir claramente los datos que se requieren para esta operación y facilitando el desarrollo al proporcionar una estructura clara para los datos relacionados con las actividades
-  gestorId: string// Parámetro para recibir el ID del usuario autenticado que está creando la actividad, lo que permite a esta función asociar la actividad creada con el usuario que la creó, mejorando la gestión de datos al mantener un registro de quién creó cada actividad y facilitando la implementación de funcionalidades relacionadas con la gestión de actividades según el usuario que las creó
-): Promise<Actividad> => {// Tipo de retorno para indicar que esta función devuelve una promesa que se resuelve con un objeto de tipo Actividad, lo que permite a esta función ser utilizada de manera asíncrona y proporcionar la información de la actividad creada una vez que la operación de creación se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades creadas de manera eficiente y clara
-  const { titulo, descripcion, fecha_inicio, ubicacion, imagen_url } = data;// Desestructuración de los datos recibidos para extraer los campos necesarios para crear una nueva actividad, lo que permite a esta función acceder a estos campos de manera más sencilla y clara al utilizar variables con nombres descriptivos, mejorando la legibilidad del código al proporcionar una forma clara de acceder a los datos relacionados con la creación de actividades
+import { randomUUID } from "crypto";
+import { pool } from "../../config/database";
+import Boom from "@hapi/boom";
+import { Actividad, CreateActividadDTO, UpdateActividadDTO } from "./actividades.types";
+// Importar la función de emisión del gateway
+import { emitNuevaActividad } from "../chat/chat.gateway";
 
-  try {// Bloque try-catch para manejar errores que puedan ocurrir durante la operación de creación de una nueva actividad, lo que permite a esta función responder de manera adecuada en caso de que ocurra un error durante la ejecución de las operaciones relacionadas con la creación de actividades, mejorando la gestión de errores en la aplicación al proporcionar información clara sobre los errores que puedan ocurrir durante esta operación y permitiendo a los desarrolladores manejar estos errores de manera eficiente
-  const result = await pool.query<Actividad>(// Consulta a la base de datos para insertar una nueva actividad utilizando los datos recibidos y el ID del usuario autenticado, lo que permite a esta función interactuar con la base de datos PostgreSQL para realizar la operación de creación de una actividad específica en la aplicación, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-    `INSERT INTO actividades (// Consulta SQL para insertar una nueva actividad en la tabla "actividades" de la base de datos, lo que permite a esta función realizar la operación de creación de una actividad específica en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-      titulo,
-      descripcion,
-      fecha_inicio,
-      ubicacion,
-      imagen_url,
-      qr_payload,
-      creada_por
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING *`,
-    [
-      titulo,
-      descripcion ?? null,
-      fecha_inicio,
-      ubicacion ?? null,
-      imagen_url ?? null,
-      randomUUID(),
-      gestorId
-    ]
-  );
+console.log("CREATE SERVICE HIT");
 
-  return result.rows[0];// Devuelve el objeto de tipo Actividad que se ha creado, lo que permite a esta función proporcionar la información de la actividad creada una vez que la operación de creación se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades creadas de manera eficiente y clara
-} catch (err) {// Manejo de errores en caso de que ocurra un error durante la operación de creación de una nueva actividad, lo que permite a esta función responder de manera adecuada en caso de que ocurra un error durante la ejecución de las operaciones relacionadas con la creación de actividades, mejorando la gestión de errores en la aplicación al proporcionar información clara sobre los errores que puedan ocurrir durante esta operación y permitiendo a los desarrolladores manejar estos errores de manera eficiente
-  console.error("CREATE ACTIVIDAD ERROR:", err);// Registro del error en la consola para ayudar a los desarrolladores a rastrear y diagnosticar problemas relacionados con la creación de actividades en la aplicación, lo que puede ser útil para identificar y solucionar errores que puedan ocurrir durante esta operación
-  throw err;// Relanzamiento del error para que pueda ser manejado por el controlador o por otros mecanismos de manejo de errores en la aplicación, lo que permite a esta función delegar la gestión de errores a otros componentes de la aplicación que puedan proporcionar una respuesta adecuada al cliente en caso de que ocurra un error durante la operación de creación de actividades, mejorando la gestión de errores en la aplicación al proporcionar información clara sobre los errores que puedan ocurrir durante esta operación y permitiendo a los desarrolladores manejar estos errores de manera eficiente
-}
+export const createActividadService = async (
+  data: CreateActividadDTO,
+  gestorId: string
+): Promise<Actividad> => {
+  const { titulo, descripcion, fecha_inicio, ubicacion, imagen_url } = data;
 
+  try {
+    const result = await pool.query<Actividad>(
+      `INSERT INTO actividades (
+        titulo, descripcion, fecha_inicio,
+        ubicacion, imagen_url, qr_payload, creada_por
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      [
+        titulo,
+        descripcion ?? null,
+        fecha_inicio,
+        ubicacion ?? null,
+        imagen_url ?? null,
+        randomUUID(),
+        gestorId,
+      ]
+    );
+
+    const actividad = result.rows[0];
+
+    // Emitir la nueva actividad a todos los clientes conectados via WebSocket
+    // Esto hace que aparezca en tiempo real en la pantalla de Actividades
+    // de las familias sin que tengan que recargar la página
+    emitNuevaActividad(actividad);
+
+    return actividad;
+  } catch (err) {
+    console.error("CREATE ACTIVIDAD ERROR:", err);
+    throw err;
+  }
 };
 
-export const listActividadesService = async (// Función asíncrona para obtener una lista de actividades, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la obtención de la lista de actividades
-  soloActivas = false// Parámetro opcional para indicar si se deben obtener solo las actividades activas (aquellas cuya fecha de inicio es menor o igual a la fecha actual), lo que permite a esta función filtrar las actividades según su estado (activas o todas) y proporcionar una lista de actividades más relevante para el cliente según sus necesidades, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
-): Promise<Actividad[]> => {// Tipo de retorno para indicar que esta función devuelve una promesa que se resuelve con un array de objetos de tipo Actividad, lo que permite a esta función ser utilizada de manera asíncrona y proporcionar la información de la lista de actividades una vez que la operación de obtención se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades obtenidas de manera eficiente y clara
-  let query: string;// Variable para almacenar la consulta SQL que se ejecutará para obtener la lista de actividades, lo que permite a esta función construir dinámicamente la consulta SQL según el valor del parámetro "soloActivas" y proporcionar una lista de actividades filtrada según este criterio, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
-  let params: unknown[];// Variable para almacenar los parámetros que se utilizarán en la consulta SQL, lo que permite a esta función construir dinámicamente la lista de parámetros según el valor del parámetro "soloActivas" y proporcionar una lista de actividades filtrada según este criterio, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
+// ... resto de funciones sin cambios ...
+export const listActividadesService = async (
+  soloActivas = false
+): Promise<Actividad[]> => {
+  const query = soloActivas
+    ? `SELECT * FROM actividades WHERE fecha_inicio <= NOW() ORDER BY created_at DESC`
+    : `SELECT * FROM actividades ORDER BY created_at DESC`;
 
-  if (soloActivas) {// Condicional para verificar si se deben obtener solo las actividades activas, lo que permite a esta función construir la consulta SQL y la lista de parámetros de manera dinámica según el valor del parámetro "soloActivas" y proporcionar una lista de actividades filtrada según este criterio, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
-    query = `SELECT * FROM actividades// Consulta SQL para seleccionar todas las actividades de la tabla "actividades" de la base de datos, filtrando solo aquellas cuya fecha de inicio es menor o igual a la fecha actual, lo que permite a esta función obtener una lista de actividades activas en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-             WHERE fecha_inicio <= NOW() // Cláusula WHERE para filtrar solo las actividades cuya fecha de inicio es menor o igual a la fecha actual, lo que permite a esta función obtener una lista de actividades activas en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-             ORDER BY created_at DESC`;// Cláusula ORDER BY para ordenar las actividades por fecha de creación en orden descendente, lo que permite a esta función proporcionar una lista de actividades ordenada según su fecha de creación, mejorando la experiencia del usuario al mostrar las actividades más recientes primero en la lista
-    params = [];// Lista de parámetros vacía ya que no se requieren parámetros para esta consulta SQL, lo que permite a esta función ejecutar la consulta SQL sin necesidad de proporcionar parámetros adicionales, mejorando la simplicidad de la función al no requerir parámetros para esta operación específica
-  } else {// Condicional para el caso en que se deben obtener todas las actividades sin filtrar por su estado, lo que permite a esta función construir la consulta SQL y la lista de parámetros de manera dinámica según el valor del parámetro "soloActivas" y proporcionar una lista de actividades filtrada según este criterio, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
-    query = `SELECT * FROM actividades ORDER BY created_at DESC`;// Consulta SQL para seleccionar todas las actividades de la tabla "actividades" de la base de datos, ordenándolas por fecha de creación en orden descendente, lo que permite a esta función obtener una lista completa de actividades en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-    params = [];// Lista de parámetros vacía ya que no se requieren parámetros para esta consulta SQL, lo que permite a esta función ejecutar la consulta SQL sin necesidad de proporcionar parámetros adicionales, mejorando la simplicidad de la función al no requerir parámetros para esta operación específica
-  }// Condicional para verificar si se deben obtener solo las actividades activas, lo que permite a esta función construir la consulta SQL y la lista de parámetros de manera dinámica según el valor del parámetro "soloActivas" y proporcionar una lista de actividades filtrada según este criterio, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener la lista de actividades según diferentes criterios
-
-  const result = await pool.query<Actividad>(query, params);// Consulta a la base de datos para obtener la lista de actividades utilizando la consulta SQL construida dinámicamente y la lista de parámetros, lo que permite a esta función interactuar con la base de datos PostgreSQL para realizar la operación de obtención de una lista de actividades específica en la aplicación, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-  return result.rows;// Devuelve un array de objetos de tipo Actividad que representan la lista de actividades obtenida, lo que permite a esta función proporcionar la información de las actividades obtenidas una vez que la operación de obtención se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades obtenidas de manera eficiente y clara
+  const result = await pool.query<Actividad>(query);
+  return result.rows;
 };
 
-export const getActividadByIdService = async (id: string): Promise<Actividad> => {// Función asíncrona para obtener una actividad por su ID, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la obtención de una actividad específica
-  const result = await pool.query<Actividad>(// Consulta a la base de datos para obtener una actividad específica utilizando su ID, lo que permite a esta función interactuar con la base de datos PostgreSQL para realizar la operación de obtención de una actividad específica en la aplicación, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-    `SELECT * FROM actividades WHERE id = $1 LIMIT 1`,// Consulta SQL para seleccionar una actividad de la tabla "actividades" de la base de datos utilizando su ID, lo que permite a esta función obtener una actividad específica en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
-    [id]// Parámetro para proporcionar el ID de la actividad que se desea obtener, lo que permite a esta función ejecutar la consulta SQL con el ID específico de la actividad que se desea obtener, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener una actividad específica según su ID
+export const getActividadByIdService = async (
+  id: string
+): Promise<Actividad> => {
+  const result = await pool.query<Actividad>(
+    `SELECT * FROM actividades WHERE id = $1 LIMIT 1`,
+    [id]
   );
-
-  if (result.rowCount === 0) throw Boom.notFound("Actividad no encontrada");// Verificación para determinar si se encontró una actividad con el ID proporcionado, lo que permite a esta función responder de manera adecuada en caso de que no se encuentre una actividad con el ID especificado, mejorando la gestión de errores en la aplicación al proporcionar información clara sobre la ausencia de la actividad solicitada y permitiendo a los desarrolladores manejar este caso de manera eficiente
-  return result.rows[0];//  Devuelve el objeto de tipo Actividad que se ha obtenido, lo que permite a esta función proporcionar la información de la actividad obtenida una vez que la operación de obtención se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades obtenidas de manera eficiente y clara
-};// Función asíncrona para actualizar una actividad por su ID, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la actualización de una actividad específica
+  if (result.rowCount === 0) throw Boom.notFound("Actividad no encontrada");
+  return result.rows[0];
+};
 
 export const updateActividadService = async (// Función asíncrona para actualizar una actividad por su ID, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la actualización de una actividad específica
   id: string,// Parámetro para recibir el ID de la actividad que se desea actualizar, lo que permite a esta función identificar la actividad específica que se desea actualizar en la aplicación, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores actualizar una actividad específica según su ID
@@ -90,18 +88,16 @@ export const updateActividadService = async (// Función asíncrona para actuali
 
     [...values, id]// Lista de valores para la consulta SQL de actualización, que incluye los valores de los campos a actualizar y el ID de la actividad al final, lo que permite a esta función ejecutar la consulta SQL con los valores específicos para actualizar la actividad deseada, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores actualizar solo los campos necesarios para esta operación específica
   );
-
-  return result.rows[0];// Devuelve el objeto de tipo Actividad que se ha actualizado, lo que permite a esta función proporcionar la información de la actividad actualizada una vez que la operación de actualización se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades actualizadas de manera eficiente y clara
+  return result.rows[0];
 };
 
-export const deleteActividadService = async (// Función asíncrona para eliminar una actividad por su ID, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la eliminación de una actividad específica
-  id: string,// Parámetro para recibir el ID de la actividad que se desea eliminar, lo que permite a esta función identificar la actividad específica que se desea eliminar en la aplicación, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores eliminar una actividad específica según su ID
-  gestorId: string//  Parámetro para recibir el ID del usuario autenticado que está eliminando la actividad, lo que permite a esta función verificar si el usuario tiene autorización para eliminar la actividad (por ejemplo, si es el creador de la actividad) y asociar la eliminación con el usuario que la realizó, mejorando la gestión de datos al mantener un registro de quién eliminó cada actividad y facilitando la implementación de funcionalidades relacionadas con la gestión de actividades según el usuario que las eliminó
-): Promise<void> => {// Tipo de retorno para indicar que esta función devuelve una promesa que se resuelve con void (sin valor), lo que permite a esta función ser utilizada de manera asíncrona y no proporcionar un valor de retorno específico una vez que la operación de eliminación se ha completado exitosamente, mejorando la gestión de datos al permitir a los desarrolladores realizar la operación de eliminación sin necesidad de trabajar con un valor de retorno específico para esta operación
-  const existing = await getActividadByIdService(id);// Obtención de la actividad existente utilizando su ID, lo que permite a esta función verificar si la actividad que se desea eliminar existe en la aplicación antes de intentar realizar la eliminación, mejorando la gestión de errores al proporcionar información clara sobre la ausencia de la actividad solicitada y permitiendo a los desarrolladores manejar este caso de manera eficiente
-  if (existing.creada_por !== gestorId) throw Boom.forbidden("No autorizado");// Verificación para determinar si el usuario autenticado tiene autorización para eliminar la actividad (por ejemplo, si es el creador de la actividad), lo que permite a esta función responder de manera adecuada en caso de que el usuario no tenga autorización para eliminar la actividad, mejorando la gestión de errores al proporcionar información clara sobre la falta de autorización y permitiendo a los desarrolladores manejar este caso de manera eficiente
-
-  await pool.query(`DELETE FROM actividades WHERE id = $1`, [id]);// Consulta a la base de datos para eliminar una actividad específica utilizando su ID, lo que permite a esta función interactuar con la base de datos PostgreSQL para realizar la operación de eliminación de una actividad específica en la aplicación, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
+export const deleteActividadService = async (
+  id: string,
+  gestorId: string
+): Promise<void> => {
+  const existing = await getActividadByIdService(id);
+  if (existing.creada_por !== gestorId) throw Boom.forbidden("No autorizado");
+  await pool.query(`DELETE FROM actividades WHERE id = $1`, [id]);
 };
 
 export const getActividadByQrPayloadService = async (// Función asíncrona para obtener una actividad por su payload de QR, lo que permite a esta función realizar operaciones de manera asíncrona (como consultas a la base de datos) sin bloquear el hilo de ejecución principal, mejorando el rendimiento y la capacidad de respuesta de la aplicación al permitir que otras operaciones se ejecuten mientras se espera la finalización de las operaciones relacionadas con la obtención de una actividad específica utilizando su payload de QR
@@ -111,6 +107,5 @@ export const getActividadByQrPayloadService = async (// Función asíncrona para
     `SELECT * FROM actividades WHERE qr_payload = $1 LIMIT 1`,// Consulta SQL para seleccionar una actividad de la tabla "actividades" de la base de datos utilizando su payload de QR, lo que permite a esta función obtener una actividad específica en la aplicación al interactuar con la base de datos PostgreSQL, mejorando la organización del código al centralizar la lógica de acceso a la base de datos en este servicio y facilitando el mantenimiento y la escalabilidad de la aplicación al manejar las operaciones relacionadas con las actividades en servicios específicos
     [qr_payload]// Parámetro para proporcionar el payload de QR de la actividad que se desea obtener, lo que permite a esta función ejecutar la consulta SQL con el payload de QR específico de la actividad que se desea obtener, mejorando la flexibilidad de la aplicación al permitir a los desarrolladores obtener una actividad específica según su payload de QR
   );
-
-  return result.rows[0] ?? null;// Devuelve el objeto de tipo Actividad que se ha obtenido, o null si no se encuentra una actividad con el payload de QR especificado, lo que permite a esta función proporcionar la información de la actividad obtenida una vez que la operación de obtención se ha completado exitosamente, o null en caso de que no se encuentre una actividad con el payload de QR proporcionado, mejorando la gestión de datos al permitir a los desarrolladores trabajar con la información de las actividades obtenidas de manera eficiente y clara, y manejar el caso en que no se encuentra una actividad con el payload de QR proporcionado
+  return result.rows[0] ?? null;
 };

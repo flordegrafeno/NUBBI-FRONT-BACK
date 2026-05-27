@@ -1,181 +1,162 @@
-import { useState } from "preact/hooks";// Cambiado a Preact
+import { useState } from "preact/hooks";
+import { useNavigate } from "react-router-dom";
+import { colors, fonts } from "../../tokens";
+import { TopBar } from "../../components/PhoneFrame";
+import { BottomNav, gestorNav } from "../../components/BottomNav";
+import { useRooms, useCreateRoom } from "../../providers/ChatProvider";
+import { useAuth } from "../../providers/AuthProvider";
 
-import { colors, fonts } from "../../tokens";// Importación de tokens de diseño para colores y fuentes, lo que permite mantener la consistencia visual en la aplicación al usar estos tokens para definir los estilos de los componentes
-import {  TopBar } from "../../components/PhoneFrame";// Importación del componente TopBar para mostrar la barra superior de la pantalla, lo que proporciona una estructura visual clara y consistente en la aplicación al mostrar el título de la pantalla y otros elementos de navegación o información relevante en la parte superior de la interfaz de usuario
-import { BottomNav, gestorNav } from "../../components/BottomNav";// Importación del componente BottomNav y la configuración de navegación para el gestor, lo que proporciona una barra de navegación inferior con las opciones de navegación definidas en gestorNav, lo que permite a los usuarios navegar fácilmente entre las diferentes pantallas de la sección de gestor de la aplicación
+export const ComunidadGestorScreen = () => { 
+  const navigate = useNavigate();
+  const { auth } = useAuth(); 
+  const myId = auth?.user.id ?? "";
+  const { rooms, loading } = useRooms();
+  const { createRoom, loading: creating } = useCreateRoom();
+  const [showCreate, setShowCreate] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomDesc, setNewRoomDesc] = useState("");
 
-const contactos = [// Lista de contactos para mostrar en la pestaña de contactos, que incluye el nombre del contacto, un mensaje de ejemplo, la hora del último mensaje, un avatar representado por un emoji y el número de mensajes no leídos, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver sus contactos cercanos y la actividad reciente con cada uno de ellos
-  { name: "Gestor Santamaria", msg: "Hola, te esperamos en la experiencia esta...", time: "10:24", avatar: "👩‍💼", unread: 2 },
-  { name: "Papá",              msg: "Hola hijo ¿cómo estás?",                      time: "09:15", avatar: "👨",   unread: 0 },
-];
+  const handleCreate = async (e: Event) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
+    const room = await createRoom(newRoomName, myId, newRoomDesc);
+    if (room) {
+      setShowCreate(false);
+      setNewRoomName("");
+      setNewRoomDesc("");
+      navigate(`/gestor/comunidad/${room.id}`, { state: { roomName: room.name } });
+    }
+  };
 
-const chats = [
-  { name: "Grupo Mi Hogar Avanza", msg: "Muchas gracias por la iniciativa de...", time: "10:30", avatar: "🏠", unread: 5 },
-  { name: "Mamá",                  msg: "Ok amor, hasta luego",                   time: "08:45", avatar: "👩", unread: 0 },
-];
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    const diff = Date.now() - d.getTime();
+    if (diff < 60000) return "ahora";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+  };
 
-export const ComunidadGestorScreen = () => {// Componente principal de la pantalla de comunidad para el gestor, que muestra una barra superior con el título y una sección de contenido con un header que incluye un gradiente y tabs para cambiar entre la vista de chats y contactos, y una lista de conversaciones o contactos según la pestaña seleccionada, lo que permite a los gestores interactuar con sus contactos y chats grupales dentro de la comunidad de Nubbi
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height: "100vh" }}>
+      <TopBar />
 
-  const [tab, setTab] = useState<"chats" | "contactos">("chats");// Estado para controlar la pestaña seleccionada, que puede ser "chats" o "contactos", y se inicializa en "chats" para mostrar la lista de chats por defecto, lo que permite a los usuarios cambiar entre la vista de chats y contactos según su preferencia al hacer clic en las pestañas correspondientes
-
-  const items = tab === "contactos" ? contactos : chats;// Variable para almacenar la lista de elementos a mostrar en la sección principal, que se determina según la pestaña seleccionada (si la pestaña es "contactos", se muestran los contactos, de lo contrario se muestran los chats), lo que permite mostrar la información relevante en la interfaz de usuario según la selección del usuario entre chats y contactos
-
-  return (// El componente devuelve una estructura de divs que conforman la pantalla de comunidad para el gestor, con estilos definidos para cada sección para lograr una apariencia visual clara y consistente, y con componentes como TopBar y BottomNav para proporcionar una experiencia de usuario fluida y fácil de navegar dentro de la sección de comunidad del gestor en la aplicación
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
-      <TopBar  />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height:"100vh" }}>
-
-        {/* Header con gradiente y tabs */}
-        <div style={{
-          background: ` ${colors.blue}`,
-          padding: "16px 20px",
-          color: "white",
-          flexShrink: 0,
-        }}>
-          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: fonts.body }}>
-            Comunidad Nubbi
-          </div>
-          <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2, fontFamily: fonts.body }}>
-            Conversa con tus contactos y crea un chat grupal con tu familia.
-          </div>
-
-          <div style={{
-            display: "flex",
-            background: "rgba(255,255,255,0.2)",
-            borderRadius: 20,
-            padding: 3,
-            marginTop: 12,
-            gap: 2,
-          }}>
-            {(["chats", "contactos"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{
-                  flex: 1,
-                  padding: "6px 0",
-                  borderRadius: 16,
-                  background: tab === t ? "white" : "transparent",
-                  color: tab === t ? colors.blue : "white",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  fontFamily: fonts.body,
-                  transition: "all 0.2s",
-                }}
-              >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ padding: "10px 16px 4px", background: colors.gray100, flexShrink: 0 }}>
-          <div style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: colors.textLight,
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-            fontFamily: fonts.body,
-          }}>
-            {tab === "contactos" ? "Cerca de ti" : "Mis chats"}
-          </div>
-        </div>
-
-        {/* Lista de conversaciones */}
-        <div style={{ flex: 1, overflowY: "auto", background: "white", position: "relative", paddingBottom: 64 }}>
-          {items.map((item, i) => (
-            <div key={i} style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              borderBottom: `1px solid ${colors.gray100}`,
-              cursor: "pointer",
-            }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: ` ${colors.blueLight}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 22,
-                flexShrink: 0,
-              }}>
-                {item.avatar}
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: colors.text, fontFamily: fonts.body }}>
-                    {item.name}
-                  </span>
-                  <span style={{ fontSize: 10, color: colors.textLight, fontFamily: fonts.body }}>
-                    {item.time}
-                  </span>
-                </div>
-                <div style={{
-                  fontSize: 11,
-                  color: colors.textLight,
-                  marginTop: 2,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  fontFamily: fonts.body,
-                }}>
-                  {item.msg}
-                </div>
-              </div>
-
-              {item.unread > 0 && (
-                <div style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  background: colors.orange,
-                  color: "white",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  fontFamily: fonts.body,
-                }}>
-                  {item.unread}
-                </div>
-              )}
+      {showCreate && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 50, display: "flex", alignItems: "flex-end" }}
+          onClick={() => setShowCreate(false)}
+        >
+          <div
+            style={{ background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 36px", width: "100%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 800, fontSize: 16, color: colors.text, fontFamily: fonts.body, marginBottom: 16 }}>
+              Nuevo canal de comunicación
             </div>
-          ))}
+            <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input
+                placeholder="Nombre del canal *"
+                value={newRoomName}
+                onInput={(e) => setNewRoomName((e.target as HTMLInputElement).value)}
+                required
+                autoFocus
+                style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${colors.gray300}`, fontSize: 13, fontFamily: fonts.body, color: colors.text, outline: "none" }}
+              />
+              <input
+                placeholder="Descripción del canal (opcional)"
+                value={newRoomDesc}
+                onInput={(e) => setNewRoomDesc((e.target as HTMLInputElement).value)}
+                style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${colors.gray300}`, fontSize: 13, fontFamily: fonts.body, color: colors.text, outline: "none" }}
+              />
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="button" onClick={() => setShowCreate(false)}
+                  style={{ flex: 1, padding: "12px 0", background: colors.gray100, border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: fonts.body, color: colors.textLight }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={creating || !newRoomName.trim()}
+                  style={{ flex: 2, padding: "12px 0", background: creating || !newRoomName.trim() ? colors.gray300 : colors.blue, border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: creating ? "not-allowed" : "pointer", fontFamily: fonts.body, color: "white" }}>
+                  {creating ? "Creando…" : "Crear canal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-          {/* Botón flotante nuevo chat */}
-          <button style={{
-            position: "absolute",
-            bottom: 16,
-            right: 16,
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: colors.orange,
-            border: "none",
-            cursor: "pointer",
-            fontSize: 22,
-            color: "white",
-            boxShadow: `0 4px 14px ${colors.orange}60`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            +
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ background: colors.blue, padding: "16px 20px", color: "white", flexShrink: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: fonts.body }}>Comunidad Nubbi</div>
+          <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2, fontFamily: fonts.body }}>
+            Gestiona y modera los canales de comunicación
+          </div>
+        </div>
+
+        <div style={{ padding: "10px 16px 6px", background: colors.gray100, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: colors.textLight, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: fonts.body }}>
+            Canales ({rooms.length})
+          </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{ background: colors.blue, border: "none", borderRadius: 8, padding: "4px 12px", color: "white", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}
+          >
+            + Nuevo
           </button>
         </div>
 
+        <div style={{ flex: 1, overflowY: "auto", background: "white", paddingBottom: 80 }}>
+          {loading && (
+            <div style={{ padding: 32, textAlign: "center", color: colors.textLight, fontFamily: fonts.body, fontSize: 13 }}>
+              Cargando canales…
+            </div>
+          )}
+          {!loading && rooms.length === 0 && (
+            <div style={{ padding: 40, textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>📢</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: colors.text, fontFamily: fonts.body }}>No hay canales aún</div>
+              <div style={{ fontSize: 12, color: colors.textLight, fontFamily: fonts.body, marginTop: 6 }}>Crea un canal para comunicarte con las familias</div>
+            </div>
+          )}
+
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              onClick={() => navigate(`/gestor/comunidad/${room.id}`, { state: { roomName: room.name } })}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${colors.gray100}`, cursor: "pointer" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = colors.gray100; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            >
+              <div
+                style={{
+                  width: 46, height: 46, borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${colors.blue}, ${colors.teal})`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0,
+                }}
+              >
+                📢
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: colors.text, fontFamily: fonts.body }}>{room.name}</span>
+                  <span style={{ fontSize: 10, color: colors.textLight, fontFamily: fonts.body }}>{formatTime(room.created_at)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: colors.textLight, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: fonts.body }}>
+                  {room.description ?? "Canal de comunicación"}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                {room.created_by === myId && (
+                  <span style={{ fontSize: 9, background: colors.blueLight, color: colors.blue, borderRadius: 6, padding: "2px 6px", fontWeight: 700, fontFamily: fonts.body }}>
+                    ADMIN
+                  </span>
+                )}
+                <span style={{ color: colors.gray500, fontSize: 16 }}>›</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <BottomNav items={gestorNav} />// Componente de navegación inferior con las opciones definidas en gestorNav, lo que permite a los usuarios navegar fácilmente entre las diferentes pantallas de la sección de gestor de la aplicación
+
+      <BottomNav items={gestorNav} />
     </div>
   );
 };

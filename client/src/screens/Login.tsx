@@ -66,6 +66,7 @@ export const LoginScreen = () => {
       // Mensaje de confirmación de email no es un error, es una instrucción
       if (msg.toLowerCase().includes("confirma") || msg.toLowerCase().includes("correo")) {
         setInfo(msg);
+        navigate("gestor")
       } else {
         setError(msg);
       }
