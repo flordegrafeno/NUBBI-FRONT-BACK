@@ -1,38 +1,8 @@
-import { Server as SocketIOServer, Socket } from "socket.io";
+import { Server as SocketIOServer } from "socket.io";
 import { Server as HTTPServer } from "http";
 import { pool } from "../../config/database";
 import { supabase } from "../../config/supabase";
 import type { Actividad } from "../actividades/actividades.types";
-
-// ─── Tipos de eventos ─────────────────────────────────────────────────────────
-
-interface ClientToServerEvents {
-  join_room: (roomId: string) => void;
-  leave_room: (roomId: string) => void;
-  send_message: (payload: { roomId: string; content: string }) => void;
-  typing: (payload: { roomId: string; isTyping: boolean }) => void;
-}
-
-interface ServerToClientEvents {
-  new_message: (message: MessagePayload) => void;
-  user_typing: (payload: {
-    profileId: string;
-    name: string;
-    isTyping: boolean;
-  }) => void;
-  // Nuevo evento: cuando un gestor crea una actividad, se emite a todos
-  nueva_actividad: (actividad: Actividad) => void;
-  error: (message: string) => void;
-}
-
-interface SocketData {
-  user: {
-    id: string;
-    email: string;
-    full_name: string;
-    role: "familia" | "gestor";
-  };
-}
 
 export interface MessagePayload {
   id: string;
@@ -43,29 +13,20 @@ export interface MessagePayload {
   profiles: { full_name: string; email: string };
 }
 
-// Variable global para poder usar io fuera del gateway
-// (la necesita el controlador de actividades)
+// Referencia global para poder emitir desde otros módulos (ej: actividades)
 let _io: SocketIOServer | null = null;
 
-// Función que llama el controlador de actividades para emitir
-// la nueva actividad a todos los clientes conectados
+// Llamado desde el servicio de actividades al crear una nueva
 export const emitNuevaActividad = (actividad: Actividad) => {
   if (_io) {
-    // "actividades" es una sala global a la que todos se suscriben al conectar
     _io.to("actividades").emit("nueva_actividad", actividad);
     console.log(`[WS] Nueva actividad emitida: ${actividad.titulo}`);
   }
 };
 
-// ─── Inicializador ────────────────────────────────────────────────────────────
-
 export const initChatGateway = (httpServer: HTTPServer) => {
-  const io = new SocketIOServer
-    ClientToServerEvents,
-    ServerToClientEvents,
-    Record<string, never>,
-    SocketData
-  >(httpServer, {
+  // Sin genéricos explícitos para evitar el bug del parser de ts-node
+  const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
@@ -74,7 +35,6 @@ export const initChatGateway = (httpServer: HTTPServer) => {
     pingInterval: 25000,
   });
 
-  // Guardar referencia global para emitNuevaActividad
   _io = io;
 
   // ── Middleware de autenticación ───────────────────────────────────────────
@@ -91,36 +51,48 @@ export const initChatGateway = (httpServer: HTTPServer) => {
     );
     if (result.rowCount === 0) return next(new Error("Perfil no encontrado"));
 
-    socket.data.user = result.rows[0];
+    // Guardar usuario en el socket para accederlo en los handlers
+    (socket as any).data = { user: result.rows[0] };
     next();
   });
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
+  // ── Handlers de conexión ──────────────────────────────────────────────────
   io.on("connection", (socket) => {
-    const user = socket.data.user;
+    const user = (socket as any).data?.user as {
+      id: string;
+      email: string;
+      full_name: string;
+      role: "familia" | "gestor";
+    };
+
+    if (!user) {
+      socket.disconnect();
+      return;
+    }
+
     console.log(`[WS] Conectado: ${user.full_name} (${user.role})`);
 
-    // Al conectar, TODOS los usuarios se unen automáticamente a la sala
-    // global "actividades" para recibir nuevas actividades en tiempo real
+    // Todos los usuarios se suscriben automáticamente al canal global
+    // "actividades" para recibir nuevas actividades en tiempo real
     socket.join("actividades");
-    console.log(`[WS] ${user.full_name} suscrito a sala "actividades"`);
 
-    // ── Chat: unirse a sala ───────────────────────────────────────────────
+    // ── join_room ─────────────────────────────────────────────────────────
     socket.on("join_room", (roomId: string) => {
       socket.join(roomId);
       console.log(`[WS] ${user.full_name} entró a sala ${roomId}`);
     });
 
-    // ── Chat: salir de sala ───────────────────────────────────────────────
+    // ── leave_room ────────────────────────────────────────────────────────
     socket.on("leave_room", (roomId: string) => {
       socket.leave(roomId);
       console.log(`[WS] ${user.full_name} salió de sala ${roomId}`);
     });
 
-    // ── Chat: enviar mensaje ──────────────────────────────────────────────
-    socket.on("send_message", async ({ roomId, content }) => {
+    // ── send_message ──────────────────────────────────────────────────────
+    socket.on("send_message", async (payload: { roomId: string; content: string }) => {
+      const { roomId, content } = payload;
       if (!content?.trim()) return;
+
       try {
         const result = await pool.query(
           `INSERT INTO messages (room_id, profile_id, content)
@@ -128,10 +100,16 @@ export const initChatGateway = (httpServer: HTTPServer) => {
            RETURNING *`,
           [roomId, user.id, content.trim()]
         );
+
         const savedMessage = result.rows[0];
+
+        // Broadcast a todos en la sala incluyendo el emisor
         io.to(roomId).emit("new_message", {
           ...savedMessage,
-          profiles: { full_name: user.full_name, email: user.email },
+          profiles: {
+            full_name: user.full_name,
+            email: user.email,
+          },
         });
       } catch (err) {
         console.error("[WS] Error guardando mensaje:", err);
@@ -139,8 +117,10 @@ export const initChatGateway = (httpServer: HTTPServer) => {
       }
     });
 
-    // ── Chat: indicador de escritura ──────────────────────────────────────
-    socket.on("typing", ({ roomId, isTyping }) => {
+    // ── typing ────────────────────────────────────────────────────────────
+    socket.on("typing", (payload: { roomId: string; isTyping: boolean }) => {
+      const { roomId, isTyping } = payload;
+      // socket.to() envía a todos en la sala EXCEPTO al emisor
       socket.to(roomId).emit("user_typing", {
         profileId: user.id,
         name: user.full_name,
@@ -148,7 +128,8 @@ export const initChatGateway = (httpServer: HTTPServer) => {
       });
     });
 
-    socket.on("disconnect", (reason) => {
+    // ── disconnect ────────────────────────────────────────────────────────
+    socket.on("disconnect", (reason: string) => {
       console.log(`[WS] ${user.full_name} desconectado: ${reason}`);
     });
   });

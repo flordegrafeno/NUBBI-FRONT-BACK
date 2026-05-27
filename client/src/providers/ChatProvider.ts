@@ -247,8 +247,10 @@ export const useTypingIndicator = (
       if (now - lastEmitRef.current < 1000) return;
       lastEmitRef.current = now;
       emitTyping(roomId, true);
+      console.log(name);
     },
     [roomId, emitTyping]
+    
   );
 
   return { typingUsers, broadcastTyping };
