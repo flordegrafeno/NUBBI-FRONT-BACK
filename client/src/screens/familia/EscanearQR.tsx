@@ -76,7 +76,7 @@ const useQRScanner = (
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
+      inversionAttempts: "attemptBoth",
     });
 
     if (code?.data && !detectedRef.current) {
@@ -213,7 +213,7 @@ export const EscanearQRScreen = () => {
   const [tutorialStep, setTutorialStep] = useState(0);
 
   // API hook
-  const { scan, loading, error, resultado } = useScanQR();
+  const { scan, loading, error, resultado, reset: resetScanResult } = useScanQR();
 
   // ─── Lógica de detección ───────────────────────────────────────────────────
 
@@ -246,6 +246,7 @@ export const EscanearQRScreen = () => {
     setScannedPayload(null);
     setGalleryError(null);
     setGalleryPreview(null);
+    resetScanResult();
   };
 
   const cameraActive = mode === "camera" && !scannedPayload && !resultado;

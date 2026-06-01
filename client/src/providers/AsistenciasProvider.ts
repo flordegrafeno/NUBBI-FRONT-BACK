@@ -43,6 +43,11 @@ export const useScanQR = () => {// Hook para escanear un código QR y registrar 
     }// El bloque try-catch-finally asegura que el estado de carga se actualice correctamente y que cualquier error se maneje adecuadamente, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante el proceso de escanear el código QR y registrar la asistencia
   };
 
-  return { scan, loading, error, resultado };// El hook devuelve un objeto con la función scan para escanear un código QR y registrar la asistencia, el estado de carga, el estado de error y el resultado del escaneo para que el componente que use este hook pueda manejar estos estados y mostrar la información de la asistencia registrada según sea necesario
+  const reset = () => {
+    setResultado(null);
+    setError(null);
+  };
+
+  return { scan, loading, error, resultado, reset };// El hook devuelve un objeto con la función scan para escanear un código QR y registrar la asistencia, el estado de carga, el estado de error y el resultado del escaneo para que el componente que use este hook pueda manejar estos estados y mostrar la información de la asistencia registrada según sea necesario
   
 };
