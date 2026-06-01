@@ -8,7 +8,7 @@ import jsQR from "jsqr";
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
 
-type ScanMode = "camera" | "manual" | "gallery";
+type ScanMode = "camera" | "manual";
 type CameraState = "idle" | "requesting" | "active" | "denied" | "unsupported";
 type FacingMode = "environment" | "user";
 
@@ -145,38 +145,6 @@ const useQRScanner = (
   return { videoRef, canvasRef, cameraState, stopCamera };
 };
 
-// ─── HOOK: Escanear QR desde imagen ──────────────────────────────────────────
-
-const useScanFromImage = (onDetected: (payload: string | null) => void) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const scanFile = useCallback(
-    (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = canvasRef.current || document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return onDetected(null);
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "attemptBoth",
-          });
-          onDetected(code?.data ?? null);
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    },
-    [onDetected]
-  );
-
-  return { scanFile, canvasRef };
-};
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 
@@ -197,12 +165,6 @@ export const EscanearQRScreen = () => {
 
   // Modo manual
   const [payload, setPayload] = useState("");
-
-  // Galería
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [galleryScanning, setGalleryScanning] = useState(false);
-  const [galleryError, setGalleryError] = useState<string | null>(null);
-  const [galleryPreview, setGalleryPreview] = useState<string | null>(null);
 
   // Historial de sesión
   const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
@@ -244,8 +206,6 @@ export const EscanearQRScreen = () => {
 
   const resetScan = () => {
     setScannedPayload(null);
-    setGalleryError(null);
-    setGalleryPreview(null);
     resetScanResult();
   };
 
@@ -257,28 +217,6 @@ export const EscanearQRScreen = () => {
     "environment",
     false
   );
-
-  // ─── Galería ───────────────────────────────────────────────────────────────
-
-  const { scanFile } = useScanFromImage((result) => {
-    setGalleryScanning(false);
-    if (!result) {
-      setGalleryError("No se encontró ningún código QR en la imagen.");
-      return;
-    }
-    handleDetected(result);
-  });
-
-  const handleFileChange = (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    setGalleryError(null);
-    setGalleryScanning(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => setGalleryPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-    scanFile(file);
-  };
 
   // ─── Manual ───────────────────────────────────────────────────────────────
 
@@ -295,10 +233,7 @@ export const EscanearQRScreen = () => {
 
   const tutorialSteps = [
     { icon: "📷", title: "Modo Cámara", desc: "Apunta la cámara al código QR y se detectará automáticamente sin tocar nada." },
-    { icon: "🖼️", title: "Modo Galería", desc: "Si tienes una captura del código QR, selecciónala desde tu galería de fotos." },
     { icon: "✏️", title: "Modo Manual", desc: "Si el gestor te compartió el código en texto, puedes pegarlo directamente aquí." },
-    { icon: "💡", title: "Linterna", desc: "En entornos con poca luz puedes activar la linterna del dispositivo (solo en cámara trasera)." },
-    { icon: "🔄", title: "Voltear cámara", desc: "Alterna entre la cámara delantera y trasera según lo que necesites." },
   ];
 
   const succeeded = !!resultado;
@@ -586,7 +521,6 @@ export const EscanearQRScreen = () => {
           >
             {([
               { id: "camera", label: "📷 Cámara" },
-              { id: "gallery", label: "🖼️ Galería" },
               { id: "manual", label: "✏️ Manual" },
             ] as { id: ScanMode; label: string }[]).map((m) => (
               <button
@@ -830,40 +764,22 @@ export const EscanearQRScreen = () => {
                           <br />
                           <span style={{ fontSize: 11, opacity: 0.6 }}>Ve a Configuración → Privacidad → Cámara</span>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-                          <button
-                            onClick={() => setMode("gallery")}
-                            style={{
-                              padding: "10px 0",
-                              background: colors.blue,
-                              border: "none",
-                              borderRadius: 10,
-                              color: "white",
-                              fontWeight: 700,
-                              fontSize: 12,
-                              cursor: "pointer",
-                              fontFamily: fonts.body,
-                            }}
-                          >
-                            Usar galería
-                          </button>
-                          <button
-                            onClick={() => setMode("manual")}
-                            style={{
-                              padding: "10px 0",
-                              background: "rgba(255,255,255,0.1)",
-                              border: "1px solid rgba(255,255,255,0.2)",
-                              borderRadius: 10,
-                              color: "white",
-                              fontWeight: 700,
-                              fontSize: 12,
-                              cursor: "pointer",
-                              fontFamily: fonts.body,
-                            }}
-                          >
-                            Ingresar código manual
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setMode("manual")}
+                          style={{
+                            padding: "10px 20px",
+                            background: colors.teal,
+                            border: "none",
+                            borderRadius: 10,
+                            color: "white",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            cursor: "pointer",
+                            fontFamily: fonts.body,
+                          }}
+                        >
+                          Ingresar código manual
+                        </button>
                       </>
                     )}
                     {cameraState === "unsupported" && (
@@ -954,125 +870,6 @@ export const EscanearQRScreen = () => {
                 </div>
               )}
 
-            </div>
-          )}
-
-          {/* ── MODO GALERÍA ─────────────────────────────────────────────── */}
-          {mode === "gallery" && !succeeded && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Drop zone */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: "100%",
-                  minHeight: 200,
-                  borderRadius: 16,
-                  border: `2px dashed ${colors.teal}`,
-                  background: "white",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  gap: 10,
-                  padding: 20,
-                  position: "relative",
-                  overflow: "hidden",
-                  transition: "border-color 0.2s",
-                }}
-              >
-                {galleryPreview ? (
-                  <>
-                    <img
-                      src={galleryPreview}
-                      alt="Preview"
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        opacity: 0.3,
-                      }}
-                    />
-                    <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
-                      {galleryScanning ? (
-                        <>
-                          <div style={{ fontSize: 32, marginBottom: 6 }}>🔍</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.text, fontFamily: fonts.body }}>
-                            Analizando imagen…
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: 32, marginBottom: 6 }}>🔄</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.text, fontFamily: fonts.body }}>
-                            Toca para cambiar imagen
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 44 }}>🖼️</div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: colors.text, fontFamily: fonts.body }}>
-                      Seleccionar imagen
-                    </div>
-                    <div style={{ fontSize: 11, color: colors.textLight, fontFamily: fonts.body, textAlign: "center", lineHeight: 1.5 }}>
-                      Elige una foto o captura de pantalla
-                      <br />
-                      que contenga un código QR
-                    </div>
-                    <div style={{ fontSize: 10, color: colors.textLight, fontFamily: fonts.body, marginTop: 4 }}>
-                      JPG, PNG, WEBP · Máx. 10 MB
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-
-              {galleryError && (
-                <div
-                  style={{
-                    background: "#FFF0F3",
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    fontSize: 12,
-                    color: colors.pinkDark,
-                    fontFamily: fonts.body,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span>❌</span> {galleryError}
-                </div>
-              )}
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  padding: "13px 0",
-                  background: colors.blue,
-                  border: "none",
-                  borderRadius: 12,
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: fonts.body,
-                }}
-              >
-                📂 Abrir galería de fotos
-              </button>
             </div>
           )}
 
@@ -1225,7 +1022,7 @@ export const EscanearQRScreen = () => {
                 "Mantén el código QR dentro del recuadro de escaneo",
                 "Si hay poca luz, activa la linterna del dispositivo",
                 "Asegúrate de que el código no esté borroso o dañado",
-                "Puedes usar una captura de pantalla del código con la galería",
+                "Asegúrate de estar en un lugar con buena iluminación",
               ].map((tip, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: i < 3 ? 6 : 0 }}>
                   <span style={{ fontSize: 10, color: colors.teal, marginTop: 1 }}>▸</span>

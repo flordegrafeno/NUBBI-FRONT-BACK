@@ -30,17 +30,12 @@ export const BottomNav = ({ items }: { items: NavItem[] }) => {
   return (
     <div style={{
       display: "flex",
-      justifyContent:"space-around",
+      justifyContent: "space-around",
       background: "white",
       borderTop: `1px solid ${colors.gray200}`,
       padding: "6px 0 10px",
       flexShrink: 0,
       boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
-      position:"fixed",
-      width: "100%",
-      height:"fit",
-      bottom: "0",
-      left: "0"
     }}>
       {items.map((item) => {
         const isActive = pathname === item.path;
