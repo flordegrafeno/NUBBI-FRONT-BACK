@@ -141,7 +141,7 @@ const ActividadCard = ({// Componente para mostrar la información de una activi
 };
 
 export const ActividadesScreen = () => {// Componente principal para mostrar la pantalla de actividades, que utiliza el hook useActividades para obtener la lista de actividades desde la API, y el hook useMiHistorialInteracciones para obtener el historial de interacciones del usuario con las actividades, y muestra una lista de tarjetas de actividades utilizando el componente ActividadCard, junto con la barra superior y la barra de navegación inferior para proporcionar una experiencia de usuario completa y coherente en la pantalla de actividades
-  const { actividades, loading } = useActividades(true);
+  const { actividades, loading } = useActividades();
   const { historial, loading: loadingHistorial, marcarInteres, marcarDeseo, marcarAtencion } = useMiHistorialInteracciones();
 
   useEffect(() => {

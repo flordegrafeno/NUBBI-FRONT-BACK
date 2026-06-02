@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "preact/hooks";// Cambiado a Preact
-import { useAxios } from "./AxiosProvider";// Asegúrate de que este hook esté adaptado para Preact
+import { useState, useEffect, useCallback } from "preact/hooks";
+import { useAxios } from "./AxiosProvider";
+import { supabase } from "../config/supabase";
 
 export interface Interaccion {// Interfaz que representa una interacción del usuario con una actividad, que incluye información sobre si el usuario mostró atención, interés, deseo o tomó alguna acción relacionada con la actividad, así como las fechas de creación y actualización de la interacción
   id: string;// ID único de la interacción
@@ -126,7 +127,38 @@ export const useInteraccionesAgregadas = (actividadIds: string[]) => {// Hook pa
       setInteracciones(all);// Finalmente, independientemente de si las peticiones fueron exitosas o no, se actualiza el estado de las interacciones con la información obtenida de la API para todas las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
       setLoading(false);// Finalmente, independientemente de si las peticiones fueron exitosas o no, se actualiza el estado de las interacciones con la información obtenida de la API para todas las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y se indica que la carga de las interacciones ha finalizado, lo que permite mostrar un indicador de carga mientras se obtienen las interacciones y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
     });
-  }, [key]);// El useEffect se ejecuta cuando el componente se monta o cuando cambian los IDs de las actividades proporcionadas, lo que permite mostrar esta información en la interfaz de usuario para que el usuario pueda ver cómo han interactuado otros usuarios con estas actividades, y proporciona una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+  }, [key]);
 
-  return { interacciones, loading };// El hook devuelve un objeto con la lista de interacciones de los usuarios con las actividades específicas y el estado de carga, lo que permite a los componentes que usan este hook acceder a esta información para mostrarla en la interfaz de usuario y para mostrar un indicador de carga mientras se obtienen las interacciones, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones
+  // Escuchar interacciones nuevas/actualizadas en tiempo real via Supabase Realtime
+  useEffect(() => {
+    if (actividadIds.length === 0) return;
+
+    const channel = supabase
+      .channel('interacciones')
+      .on('broadcast', { event: 'interaccion-updated' }, ({ payload }) => {
+        const interaccion = payload as Interaccion;
+
+        // Solo procesar si la interacción pertenece a una actividad que estamos monitoreando
+        if (!actividadIds.includes(interaccion.actividad_id)) return;
+
+        setInteracciones((prev) => {
+          const idx = prev.findIndex((i) => i.id === interaccion.id);
+          if (idx === -1) {
+            // Nueva interacción: agregar al array
+            return [...prev, interaccion];
+          }
+          // Interacción existente actualizada: reemplazar en su posición
+          const next = [...prev];
+          next[idx] = interaccion;
+          return next;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [key]);
+
+  return { interacciones, loading };
 };// El hook useInteraccionesAgregadas proporciona una forma de obtener las interacciones de los usuarios con múltiples actividades, haciendo peticiones a la API para obtener la lista de interacciones relacionadas con cada una de las actividades proporcionadas y almacenándolas en un estado local, y proporciona el estado de carga para que el componente que use este hook pueda mostrar un indicador de carga mientras se obtienen las interacciones, proporcionando una experiencia de usuario fluida incluso en caso de problemas durante la carga de las interacciones

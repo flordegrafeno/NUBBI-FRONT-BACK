@@ -1,6 +1,13 @@
 import { pool } from "../../config/database";
 import Boom from "@hapi/boom";
 import { CreateInteraccionDTO, Interaccion, UpdateInteraccionDTO } from "./interacciones.types";
+import { supabase } from "../../config/supabase";
+
+const broadcastInteraccion = async (interaccion: Interaccion) => {
+  const channel = supabase.channel('interacciones');
+  await channel.httpSend('interaccion-updated', interaccion);
+  supabase.removeChannel(channel);
+};
 
 export const createInteraccionService = async (
   data: CreateInteraccionDTO,
@@ -26,7 +33,9 @@ export const createInteraccionService = async (
        RETURNING *`,
       [atencion, interes, deseo, accion, row.id]
     );
-    return result.rows[0];
+    const interaccion = result.rows[0];
+    broadcastInteraccion(interaccion);
+    return interaccion;
   }
 
   const result = await pool.query<Interaccion>(
@@ -36,7 +45,9 @@ export const createInteraccionService = async (
     [actividad_id, profileId, atencion, interes, deseo, accion]
   );
 
-  return result.rows[0];
+  const interaccion = result.rows[0];
+  broadcastInteraccion(interaccion);
+  return interaccion;
 };
 
 export const updateInteraccionService = async (
@@ -63,7 +74,9 @@ export const updateInteraccionService = async (
     [updatedFlags.atencion, updatedFlags.interes, updatedFlags.deseo, updatedFlags.accion, id]
   );
 
-  return result.rows[0];
+  const interaccion = result.rows[0];
+  broadcastInteraccion(interaccion);
+  return interaccion;
 };
 
 export const getInteraccionByIdService = async (id: string): Promise<Interaccion> => {
