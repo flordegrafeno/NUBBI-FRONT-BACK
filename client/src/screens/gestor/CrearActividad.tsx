@@ -29,7 +29,9 @@ const ActividadHistorialCard = ({ act }: { act: Actividad }) => {
 
   useEffect(() => {
     if (abierta && canvasRef.current) {
-      QRCode.toCanvas(canvasRef.current, act.qr_payload, {
+      const appUrl = import.meta.env.VITE_APP_URL ?? window.location.origin;
+      const qrUrl = `${appUrl}/asistencia?qr=${encodeURIComponent(act.qr_payload)}`;
+      QRCode.toCanvas(canvasRef.current, qrUrl, {
         width: 200,
         margin: 2,
         color: { dark: "#1a1a2e", light: "#ffffff" },
@@ -99,7 +101,7 @@ const ActividadHistorialCard = ({ act }: { act: Actividad }) => {
             letterSpacing: "0.5px", textAlign: "center", maxWidth: 200,
             wordBreak: "break-all",
           }}>
-            {act.qr_payload}
+            {`${import.meta.env.VITE_APP_URL ?? window.location.origin}/asistencia?qr=${act.qr_payload}`}
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ import { PerfilGestor }          from "./screens/gestor/PerfilGestor";
 import { ComunidadGestorScreen } from "./screens/gestor/ComunidadGestor";
 import type { UserRole } from "./types";
 import { ChatScreen } from "./screens/chat/ChatScreen";
+import { AsistenciaQRScreen } from "./screens/AsistenciaQR";
 
 const PrivateRoute = ({ children, role }: { children: JSX.Element; role?: UserRole }) => {
   const { auth, isLoading } = useAuth();
@@ -27,12 +28,18 @@ const PrivateRoute = ({ children, role }: { children: JSX.Element; role?: UserRo
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { auth, isLoading } = useAuth();
   if (isLoading) return null;
-  if (auth) return <Navigate to={`/${auth.user.role}`} replace />;
+  if (auth) {
+    // Si viene de un QR, redirigir de vuelta a esa URL tras autenticarse
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (redirect) return <Navigate to={redirect} replace />;
+    return <Navigate to={`/${auth.user.role}`} replace />;
+  }
   return children;
 };
 
 const AppRoutes = () => (
-  <div style={{ display: "flex", minHeight: "100vh", width: "100%", justifyContent:"center"}}>
+  <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", width: "100%" }}>
     <Routes>
       <Route path="/"      element={<PublicRoute><RoleSelector /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
@@ -49,6 +56,7 @@ const AppRoutes = () => (
       <Route path="/gestor/dashboard"    element={<PrivateRoute role="gestor"><DashboardScreen /></PrivateRoute>} />
       <Route path="/gestor/perfil"       element={<PrivateRoute role="gestor"><PerfilGestor /></PrivateRoute>} />
 
+      <Route path="/asistencia" element={<AsistenciaQRScreen />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </div>

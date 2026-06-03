@@ -576,8 +576,8 @@ export const EscanearQRScreen = () => {
 
         <div style={
           mode === "camera" && !succeeded
-            ? { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }
-            : { flex: 1, overflowY: "auto", padding: 16, paddingBottom: 80, display: "flex", flexDirection: "column", gap: 14 }
+            ? { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height: "50%" }
+            : { flex: 1, overflowY: "auto", padding: 16, paddingBottom: 80, display: "flex", flexDirection: "column", gap: 14, height: "50%" }
         }>
 
           {/* ── SUCCESS ───────────────────────────────────────────────────── */}
@@ -701,16 +701,15 @@ export const EscanearQRScreen = () => {
 
           {/* ── MODO CÁMARA ──────────────────────────────────────────────── */}
           {mode === "camera" && !succeeded && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height: "fit-content" }}>
 
               {/* Visor */}
               <div
                 style={{
                   position: "relative",
-                  flex: 1,
-                  minHeight: 0,
                   overflow: "hidden",
                   background: "#0d0d1a",
+                  height: "70vh",
                 }}
               >
                 <video
@@ -744,6 +743,7 @@ export const EscanearQRScreen = () => {
                       color: "white",
                       textAlign: "center",
                       padding: 28,
+                      height: "50%",
                     }}
                   >
                     {cameraState === "requesting" && (
@@ -1003,36 +1003,7 @@ export const EscanearQRScreen = () => {
               </form>
             </div>
           )}
-
-
-          {/* ── TIPS ─────────────────────────────────────────────────────── */}
-          {!succeeded && (
-            <div
-              style={{
-                background: `linear-gradient(135deg, ${colors.tealLight}, #f0fdfa)`,
-                borderRadius: 14,
-                padding: 14,
-                border: `1px solid ${colors.teal}30`,
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, color: colors.teal, fontFamily: fonts.body, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                💡 Consejos
-              </div>
-              {[
-                "Mantén el código QR dentro del recuadro de escaneo",
-                "Si hay poca luz, activa la linterna del dispositivo",
-                "Asegúrate de que el código no esté borroso o dañado",
-                "Asegúrate de estar en un lugar con buena iluminación",
-              ].map((tip, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: i < 3 ? 6 : 0 }}>
-                  <span style={{ fontSize: 10, color: colors.teal, marginTop: 1 }}>▸</span>
-                  <span style={{ fontSize: 11, color: colors.teal, fontFamily: fonts.body, opacity: 0.85, lineHeight: 1.4 }}>
-                    {tip}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          
 
         </div>
       </div>
