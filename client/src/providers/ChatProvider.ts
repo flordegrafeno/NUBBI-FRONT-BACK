@@ -26,8 +26,7 @@ export interface MessagePayload {
 export type ChatMessage = MessagePayload;
 
 // ─── useRooms ─────────────────────────────────────────────────────────────────
-// Obtiene la lista de salas via REST y la refresca cuando hay cambios.
-// No usa WebSocket porque las salas cambian con poca frecuencia.
+// Obtiene la lista de salas via REST y escucha creaciones/eliminaciones en tiempo real.
 export const useRooms = () => {
   const axios = useAxios();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -49,6 +48,26 @@ export const useRooms = () => {
 
   // Carga inicial
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
+
+  // Tiempo real: sala creada o eliminada
+  useEffect(() => {
+    const channel = supabase
+      .channel('rooms')
+      .on('broadcast', { event: 'room-created' }, ({ payload }) => {
+        const room = payload as ChatRoom;
+        setRooms((prev) => {
+          if (prev.find((r) => r.id === room.id)) return prev;
+          return [room, ...prev];
+        });
+      })
+      .on('broadcast', { event: 'room-deleted' }, ({ payload }) => {
+        const { roomId } = payload as { roomId: string };
+        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return { rooms, loading, error, refetch: fetchRooms };
 };
